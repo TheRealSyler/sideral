@@ -37,11 +37,9 @@ copper fissure > copper ore, stone
 tin fissure > tin ore, stone
 iron fissure > iron ore, stone
 
-Created:
-
-path > 10% faster movement
-stone road < stone > 20% faster movement
 fruits trees > fruits
+
+
 
 # Buildings
 
@@ -72,3 +70,5 @@ brick shipyard < wood, brick, roof tiles
 woodcutter < wood > wood
 hunter < wood > meat, hide
 
+path > 10% faster movement
+stone road < stone > 20% faster movement

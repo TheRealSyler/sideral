@@ -37,7 +37,7 @@ const config: C = {
       },
       {
         test: /.tsx?$/,
-        loader: 'babel-loader',
+        loader: 'ts-loader',
       },
       {
         test: /.(eot|woff2?|svg|ttf|png|jpe?g)([?]?.*)$/,
@@ -49,11 +49,7 @@ const config: C = {
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
   },
-  devServer: {
-    historyApiFallback: true,
-    allowedHosts: ['localhost'],
-    publicPath: '/',
-  },
+
   optimization: {
     usedExports: true,
     splitChunks: {
