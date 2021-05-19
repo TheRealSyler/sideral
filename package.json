@@ -1,0 +1,32 @@
+{
+  "scripts": {
+    "start": " webpack-dev-server",
+    "build": "del ./dist && webpack --mode production"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.11.6",
+    "@babel/core": "^7.11.6",
+    "@babel/preset-env": "^7.11.5",
+    "@babel/preset-typescript": "^7.10.4",
+    "@types/regenerator-runtime": "^0.13.0",
+    "@types/webpack": "^4.41.22",
+    "@types/webpack-dev-server": "^3.11.0",
+    "babel-loader": "^8.1.0",
+    "css-loader": "^4.2.2",
+    "del-cli": "^3.0.1",
+    "file-loader": "^6.1.0",
+    "fork-ts-checker-webpack-plugin": "^5.1.0",
+    "html-webpack-plugin": "^4.4.1",
+    "regenerator-runtime": "^0.13.7",
+    "sass-loader": "^10.0.2",
+    "sass-node": "^4.11.2",
+    "style-loader": "^1.2.1",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.2.4",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.11.0"
+  },
+  "license": "MIT",
+  "author": "syler <hileo77@gmail.com>"
+}
