@@ -42,7 +42,6 @@ const config: C = {
       {
         test: /.(eot|woff2?|svg|ttf|png|jpe?g)([?]?.*)$/,
         loader: 'file-loader',
-        sideEffects: true,
       },
     ],
   },

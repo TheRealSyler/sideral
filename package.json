@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "start": " webpack serve --mode production",
-    "build": "del ./dist && webpack --mode production"
+    "start": "webpack serve --mode development",
+    "build": "webpack --mode production"
   },
   "devDependencies": {
     "@types/seedrandom": "^3.0.0",
@@ -10,7 +10,7 @@
     "css-loader": "^4.2.2",
     "del-cli": "^3.0.1",
     "file-loader": "^6.1.0",
-    "fork-ts-checker-webpack-plugin": "^5.1.0",
+    "fork-ts-checker-webpack-plugin": "^6.2.10",
     "html-webpack-plugin": "^4.4.1",
     "sass-loader": "^10.0.2",
     "sass-node": "^4.11.2",
