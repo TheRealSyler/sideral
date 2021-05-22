@@ -1,31 +1,44 @@
-import { renderMap, TerrainIndex } from "./map"
-import { clamp } from "./utils";
+import { Map } from "./map"
+import { renderMap } from "./renderMap";
+import { defaultResources } from "./resources";
+import { State, GameState } from "./state";
+import { InitUI } from "./ui";
+import { clamp, toPx } from "./utils";
+
 
 export class Game {
-  chunksPerRow = 8
-  terrainSize = 64
+  mapCellsPerRow = 8
+  mapCellSize = 64
   zoomScaleFactor = 1.1;
   canvas = document.createElement('canvas')
   ctx!: CanvasRenderingContext2D
-  mapSize = this.width * this.terrainSize
+  mapSize = this.mapWidth * this.mapCellSize
   minScale = 0.8
   maxScale = 4
   lastX = this.canvas.width / 2
   lastY = this.canvas.height / 2;
-  dragStart: boolean = false
   mapData!: HTMLImageElement
+
+  canDrag: boolean = false
+  dragCursorLock: boolean = false
 
   mapPadding = 0
   mapMoveFactor = 1.4
-  getMaxXPos = (scale: number) => window.innerWidth - (this.mapSize * scale) - this.mapPadding
-  getMaxYPos = (scale: number) => (window.innerHeight) - (this.mapSize * scale) - this.mapPadding
+  topHeight = 20
+  bottomHeight = 200
+  getViewportHeight = () => window.innerHeight - (this.topHeight + this.bottomHeight)
+  getViewportWidth = () => window.innerWidth
+  getMaxXPos = (scale: number) => this.getViewportWidth() - (this.mapSize * scale) - this.mapPadding
+  getMaxYPos = (scale: number) => this.getViewportHeight() - (this.mapSize * scale) - this.mapPadding
 
-  constructor(public map: [TerrainIndex, number][], public width: number) {
-    this.canvas.className = 'map'
-    this.canvas.width = window.innerWidth
-    this.canvas.height = window.innerHeight
-
+  state = new State<GameState>({
+    ...defaultResources,
+    selectedMapChunk: null
+  })
+  constructor(public map: Map, public mapWidth: number) {
+    InitUI(this.state, this.topHeight, this.bottomHeight)
     const ctx = this.canvas.getContext('2d')
+
     if (ctx) {
       this.ctx = ctx
     } else {
@@ -38,10 +51,7 @@ export class Game {
     this.canvas.addEventListener('DOMMouseScroll', this.handleScroll, false);
     this.canvas.addEventListener('mousewheel', this.handleScroll, false);
 
-    this.canvas.addEventListener('click', this.click)
-
     this.canvas.addEventListener('mousedown', this.mousedown, false);
-
 
     this.canvas.addEventListener('mousemove', this.mousemove, false);
 
@@ -51,13 +61,26 @@ export class Game {
     this.start()
 
   }
+
   private async start() {
     document.body.appendChild(this.canvas)
-
-    this.mapData = await renderMap(this.map, this.width, this.terrainSize, this.chunksPerRow)
+    this.mapData = await renderMap(this.map, this.mapWidth, this.mapCellSize, this.mapCellsPerRow)
     this.addCtxTransformTacking(this.ctx)
+    this.resize()
     this.draw()
+    setInterval(this.logicLoop, 250)
   }
+
+  private logicLoop = () => {
+
+    for (let i = 0; i < this.map.length; i++) {
+      const cell = this.map[i];
+      if (cell.building) {
+
+      }
+    }
+  }
+
   private draw = () => {
 
     const p1 = this.ctx.transformedPoint(0, 0);
@@ -70,24 +93,44 @@ export class Game {
     this.ctx.restore();
 
     this.ctx.drawImage(this.mapData, 0, 0);
+
+    // TODO improve this mess
+    const transform = this.ctx.getTransform()
+    const x = Math.round((this.lastX - transform.e) / transform.a)
+    const y = Math.round((this.lastY - transform.f) / transform.d)
+    const x2 = Math.floor(x / this.mapCellSize) * this.mapCellSize
+    const y2 = Math.floor(y / this.mapCellSize) * this.mapCellSize
+    this.ctx.strokeStyle = '#000'
+    this.ctx.beginPath();
+    this.ctx.moveTo(x2, y2);
+    this.ctx.lineTo(x2 + this.mapCellSize, y2);
+    this.ctx.lineTo(x2 + this.mapCellSize, y2 + this.mapCellSize);
+    this.ctx.lineTo(x2, y2 + this.mapCellSize);
+    this.ctx.lineTo(x2, y2);
+    this.ctx.stroke();
+    const selectedPos = this.state.get('selectedMapChunk')
+    if (selectedPos) {
+      const x2 = selectedPos.x * this.mapCellSize
+      const y2 = selectedPos.y * this.mapCellSize
+      this.ctx.strokeStyle = '#f00'
+      this.ctx.beginPath();
+      this.ctx.moveTo(x2, y2);
+      this.ctx.lineTo(x2 + this.mapCellSize, y2);
+      this.ctx.lineTo(x2 + this.mapCellSize, y2 + this.mapCellSize);
+      this.ctx.lineTo(x2, y2 + this.mapCellSize);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.stroke();
+    }
     requestAnimationFrame(this.draw)
   }
 
   private resize = () => {
-    this.ctx.canvas.width = window.innerWidth
-    this.ctx.canvas.height = window.innerHeight
-
+    this.canvas.className = 'map';
+    this.canvas.width = this.getViewportWidth();
+    this.canvas.height = this.getViewportHeight();
+    this.canvas.style.top = toPx(this.topHeight);
+    this.canvas.style.bottom = toPx(this.bottomHeight);
     this.ctx.setDomMatrix(new DOMMatrix())
-  }
-
-  private click = (e: MouseEvent) => {
-
-    const transform = this.ctx.getTransform()
-    const x = Math.round((e.offsetX - transform.e) / transform.a)
-    const y = Math.round((e.offsetY - transform.f) / transform.d)
-
-    // console.log(Math.floor((x) / this.terrainSize), y, 'maps.ts | canvas click')
-
   }
 
   private mousedown = (evt: any) => {
@@ -96,14 +139,25 @@ export class Game {
     this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
     this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
 
-    this.dragStart = true
-
-
-
-    this.canvas.requestPointerLock()
+    this.canDrag = true
   }
-  private mouseup = () => {
-    this.dragStart = false;
+  private mouseup = (e: MouseEvent) => {
+
+    if (!this.dragCursorLock) {
+
+      const transform = this.ctx.getTransform()
+      const x = Math.round((e.offsetX - transform.e) / transform.a)
+      const y = Math.round((e.offsetY - transform.f) / transform.d)
+      const x2 = Math.floor(x / this.mapCellSize)
+      const y2 = Math.floor(y / this.mapCellSize)
+      if (x >= 0 && x < this.mapSize && y >= 0 && y < this.mapSize) {
+        this.state.set('selectedMapChunk', { cell: this.map[x2 + this.mapWidth * y2], x: x2, y: y2 })
+      }
+
+    }
+
+    this.canDrag = false;
+    this.dragCursorLock = false
     document.exitPointerLock()
   }
 
@@ -111,7 +165,13 @@ export class Game {
 
     this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
     this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
-    if (this.dragStart) {
+
+
+    if (this.canDrag) {
+      if (!this.dragCursorLock) {
+        this.canvas.requestPointerLock()
+        this.dragCursorLock = true
+      }
       const transform = this.ctx.getTransform()
       const { a, b, c, d, e, f } = transform
       let x = clamp(e + evt.movementX * this.mapMoveFactor, this.mapPadding, this.getMaxXPos(a))

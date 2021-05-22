@@ -25,6 +25,7 @@
   "license": "MIT",
   "author": "syler <hileo77@gmail.com>",
   "dependencies": {
+    "dom-chef": "^5.0.0",
     "seedrandom": "^3.0.5"
   }
 }
