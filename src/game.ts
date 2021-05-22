@@ -12,8 +12,7 @@ export class Game {
   maxScale = 4
   lastX = this.canvas.width / 2
   lastY = this.canvas.height / 2;
-  dragStart: DOMPoint | null = null
-  dragged = false;
+  dragStart: boolean = false
   mapData!: HTMLImageElement
 
   mapPadding = 0
@@ -97,47 +96,28 @@ export class Game {
     this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
     this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
 
-    this.dragStart = this.ctx.transformedPoint(this.lastX, this.lastY);
-    this.dragged = false;
+    this.dragStart = true
 
 
 
     this.canvas.requestPointerLock()
   }
   private mouseup = () => {
-    this.dragStart = null;
+    this.dragStart = false;
     document.exitPointerLock()
-    // if (!dragged) zoom(evt.shiftKey ? -1 : 1);
   }
 
   private mousemove = (evt: MouseEvent) => {
 
     this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
     this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
-    this.dragged = true;
     if (this.dragStart) {
       const transform = this.ctx.getTransform()
       const { a, b, c, d, e, f } = transform
-      const pt = this.ctx.transformedPoint(this.lastX, this.lastY);
-      // console.log(e + evt.movementX, clamp(e + evt.movementX, 20, -this.mapSize * a), -this.mapSize * a)
       let x = clamp(e + evt.movementX * this.mapMoveFactor, this.mapPadding, this.getMaxXPos(a))
       let y = clamp(f + evt.movementY * this.mapMoveFactor, this.mapPadding, this.getMaxYPos(a))
-      // console.log(x)
-      const t = (n: number) => Math.round(n)
-      // console.log(this.max2(a), t(y))
-      // console.log(t(x))
-      const padding = 20
-      // if ((this.ctx.transformedPoint(0, 0).x)  > this.mapSize + padding && x < 0) {
-      //   x = 0
-      // }
-      // this.ctx.translate(x, pt.y - this.dragStart.y);
-      let newX = 0
 
-      // console.log(a, b, c, d, e, f)
       this.ctx.setTransform(a, b, c, d, x, y)
-
-
-
     }
   }
 
@@ -147,7 +127,6 @@ export class Game {
     const scale = transform.a
 
     const factor = Math.pow(this.zoomScaleFactor, clicks);
-    // console.log('a', scale,)
     if (scale < this.maxScale && factor > 1 || scale > this.minScale && factor < 1) {
 
       const pt = this.ctx.transformedPoint(this.lastX, this.lastY);
