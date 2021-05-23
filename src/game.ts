@@ -13,7 +13,8 @@ import { clamp, toPx } from "./utils";
 
 export class Game {
 
-  viewport = new CanvasCache(0, 'Main Canvas')
+  viewport = new CanvasCache(0, 'Viewport Canvas')
+  miniMap = new CanvasCache(UI_BOTTOM_HEIGHT, 'Mini Map Canvas')
   lastX = 0
   lastY = 0;
   mapSize = this.mapWidth * MAP_CELL_SIZE
@@ -36,7 +37,10 @@ export class Game {
   constructor(public map: Map, public mapWidth: number) {
     InitUI(this.state, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT)
     document.body.appendChild(this.viewport.canvas)
-
+    document.body.appendChild(this.miniMap.canvas)
+    this.miniMap.canvas.className = 'minimap'
+    this.miniMap.ctx.strokeStyle = '#000'
+    this.miniMap.ctx.lineWidth = 1.2
     window.addEventListener('resize', this.resize);
 
     this.viewport.canvas.addEventListener('DOMMouseScroll', this.handleScroll, false);
@@ -134,7 +138,11 @@ export class Game {
     this.viewport.ctx.drawImage(this.buildingTextureCanvas.canvas, 0, 0);
 
 
-    await this.drawAnimations(delta);
+    const { x: xStart, y: yStart } = this.viewport.ctx.transformedPoint(0, 0);
+    const { x: xEnd, y: yEnd } = this.viewport.ctx.transformedPoint(this.viewport.canvas.width, this.viewport.canvas.height);
+    this.drawMinimap(xStart, yStart, xEnd, yEnd);
+
+    await this.drawAnimations(delta, xStart, yStart, xEnd, yEnd);
 
 
     // TODO improve this mess
@@ -168,15 +176,31 @@ export class Game {
     requestAnimationFrame(this.draw)
   }
 
-  private async drawAnimations(delta: number) {
-    const { x: xStart, y: yStart } = this.viewport.ctx.transformedPoint(0, 0);
-    const { x: xEnd, y: yEnd } = this.viewport.ctx.transformedPoint(this.viewport.canvas.width, this.viewport.canvas.height);
-    const xStartCell = clamp(Math.floor(xStart / MAP_CELL_SIZE), this.mapWidth, 0);
-    const yStartCell = clamp(Math.floor(yStart / MAP_CELL_SIZE), this.mapWidth, 0);
-    const xEndCell = clamp(Math.floor(xEnd / MAP_CELL_SIZE), this.mapWidth, 0);
-    const yEndCell = clamp(Math.floor(yEnd / MAP_CELL_SIZE), this.mapWidth, 0);
+  private drawMinimap(xStart: number, yStart: number, xEnd: number, yEnd: number) {
+    this.miniMap.ctx.drawImage(this.mapTextureCanvas.canvas, 0, 0, UI_BOTTOM_HEIGHT, UI_BOTTOM_HEIGHT)
+    this.miniMap.ctx.drawImage(this.buildingTextureCanvas.canvas, 0, 0, UI_BOTTOM_HEIGHT, UI_BOTTOM_HEIGHT)
 
-    this.viewport.ctx.strokeStyle = '#0f0'
+    const x2 = (xStart / this.mapSize) * UI_BOTTOM_HEIGHT;
+    const y2 = (yStart / this.mapSize) * UI_BOTTOM_HEIGHT;
+    const x3 = (xEnd / this.mapSize) * UI_BOTTOM_HEIGHT;
+    const y3 = (yEnd / this.mapSize) * UI_BOTTOM_HEIGHT;
+
+    this.miniMap.ctx.beginPath();
+    this.miniMap.ctx.moveTo(x2, y2);
+    this.miniMap.ctx.lineTo(x3, y2);
+    this.miniMap.ctx.lineTo(x3, y3);
+    this.miniMap.ctx.lineTo(x2, y3);
+    this.miniMap.ctx.lineTo(x2, y2);
+    this.miniMap.ctx.stroke();
+  }
+
+  private async drawAnimations(delta: number, xStart: number, yStart: number, xEnd: number, yEnd: number) {
+    const xStartCell = clamp(Math.floor(xStart / MAP_CELL_SIZE), this.mapWidth - 1, 0);
+    const yStartCell = clamp(Math.floor(yStart / MAP_CELL_SIZE), this.mapWidth - 1, 0);
+    const xEndCell = clamp(Math.floor(xEnd / MAP_CELL_SIZE), this.mapWidth - 1, 0);
+    const yEndCell = clamp(Math.floor(yEnd / MAP_CELL_SIZE), this.mapWidth - 1, 0);
+
+
     for (let x = xStartCell; x <= xEndCell; x++) {
       for (let y = yStartCell; y <= yEndCell; y++) {
         const i = x + this.mapWidth * y;
@@ -184,20 +208,9 @@ export class Game {
         const y2 = y * MAP_CELL_SIZE
         const { building } = this.map[i]
 
-        if (building) {
-          this.viewport.ctx.beginPath();
-          this.viewport.ctx.moveTo(x2, y2);
-          this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
-          this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
-          this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
-          this.viewport.ctx.lineTo(x2, y2);
-          this.viewport.ctx.stroke();
-          if (building.isUpgrading) {
-
-            this.viewport.ctx.drawImage(await renderAnimation('build', delta), x2, y2)
-          }
+        if (building?.isUpgrading) {
+          this.viewport.ctx.drawImage(await renderAnimation('build', delta), x2, y2)
         }
-
 
       }
 
