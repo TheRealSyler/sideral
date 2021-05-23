@@ -68,6 +68,54 @@ function createMapCell(type: MapCellName, rotation: number, resourceAmount: numb
     rotation: degToRad(180),
     resourceAmount: 1000
   }
+  map[4092 - 64] = {
+    building: null,
+    type: 'water coast 2',
+    rotation: degToRad(-90),
+    resourceAmount: 1000
+  }
+  map[4093 - 64] = {
+    building: null,
+    type: 'water coast',
+    rotation: degToRad(0),
+    resourceAmount: 1000
+  }
+  map[4094 - 64] = {
+    building: null,
+    type: 'water coast',
+    rotation: degToRad(0),
+    resourceAmount: 1000
+  }
+  map[4095 - 64] = {
+    building: null,
+    type: 'water coast',
+    rotation: degToRad(0),
+    resourceAmount: 1000
+  }
+  map[4092] = {
+    building: null,
+    type: 'water coast',
+    rotation: degToRad(-90),
+    resourceAmount: 1000
+  }
+  map[4093] = {
+    building: null,
+    type: 'water',
+    rotation: degToRad(0),
+    resourceAmount: 1000
+  }
+  map[4094] = {
+    building: null,
+    type: 'water',
+    rotation: degToRad(90),
+    resourceAmount: 1000
+  }
+  map[4095] = {
+    building: null,
+    type: 'water',
+    rotation: degToRad(180),
+    resourceAmount: 1000
+  }
 
   new Game(map, b)
 
