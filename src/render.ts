@@ -29,12 +29,12 @@ export async function render(mapCanvas: CanvasCache, buildingCanvas: CanvasCache
     mapCellCanvas.ctx.rotate(cell.rotation)
     mapCellCanvas.ctx.translate(-MAP_CELL_SIZE / 2, -MAP_CELL_SIZE / 2)
     mapCellCanvas.ctx.drawImage(img, offsetX, offsetY, MAP_CELL_SIZE, MAP_CELL_SIZE, 0, 0, MAP_CELL_SIZE, MAP_CELL_SIZE)
+    mapCellCanvas.ctx.resetTransform()
 
     mapCanvas.ctx.drawImage(mapCellCanvas.canvas, x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
     if (cell.building) {
       buildingCanvas.ctx.drawImage(await renderBuilding(cell.building), x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
     }
-    mapCellCanvas.ctx.resetTransform()
 
   }
 
@@ -44,10 +44,10 @@ export async function renderCellBuilding(point: DOMPoint, buildingCanvas: Canvas
 
   const x = point.x * MAP_CELL_SIZE
   const y = point.y * MAP_CELL_SIZE
-  buildingCanvas.ctx.clearRect(x, y, x + MAP_CELL_SIZE, y + MAP_CELL_SIZE)
+
+  buildingCanvas.ctx.clearRect(x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
   buildingCanvas.ctx.drawImage(await renderBuilding(building), x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
 
-  mapCellCanvas.ctx.resetTransform()
 }
 
 
