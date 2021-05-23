@@ -7,6 +7,7 @@ import { Map, MapCell } from "./map"
 import { render, renderCellBuilding } from "./render";
 import { defaultResources } from "./resources";
 import { State, GameState } from "./state";
+import { fromNow } from './time';
 import { InitUI } from "./ui";
 import { clamp, toPx } from "./utils";
 
@@ -150,8 +151,8 @@ export class Game {
       const { x, y } = this.viewport.ctx.transformedPoint(this.lastX, this.lastY)
       const x2 = Math.floor(x / MAP_CELL_SIZE) * MAP_CELL_SIZE
       const y2 = Math.floor(y / MAP_CELL_SIZE) * MAP_CELL_SIZE
-      this.viewport.ctx.strokeStyle = '#000'
       this.viewport.ctx.beginPath();
+      this.viewport.ctx.strokeStyle = '#000'
       this.viewport.ctx.moveTo(x2, y2);
       this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
       this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
@@ -164,8 +165,8 @@ export class Game {
     if (selectedPos) {
       const x2 = selectedPos.x * MAP_CELL_SIZE
       const y2 = selectedPos.y * MAP_CELL_SIZE
-      this.viewport.ctx.strokeStyle = '#f00'
       this.viewport.ctx.beginPath();
+      this.viewport.ctx.strokeStyle = '#f00'
       this.viewport.ctx.moveTo(x2, y2);
       this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
       this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
@@ -200,18 +201,21 @@ export class Game {
     const xEndCell = clamp(Math.floor(xEnd / MAP_CELL_SIZE), this.mapWidth - 1, 0);
     const yEndCell = clamp(Math.floor(yEnd / MAP_CELL_SIZE), this.mapWidth - 1, 0);
 
-
+    this.viewport.ctx.fillStyle = "white";
+    this.viewport.ctx.font = '10px sans-serif'
     for (let x = xStartCell; x <= xEndCell; x++) {
       for (let y = yStartCell; y <= yEndCell; y++) {
         const i = x + this.mapWidth * y;
         const x2 = x * MAP_CELL_SIZE
         const y2 = y * MAP_CELL_SIZE
         const { building } = this.map[i]
-
         if (building?.isUpgrading) {
           this.viewport.ctx.drawImage(await renderAnimation('build', delta), x2, y2)
+          this.viewport.ctx.fillText(
+            fromNow((buildingUpgradeEndDate(building, buildingInfo[building.name]))),
+            x2 + 2,
+            y2 + 10, MAP_CELL_SIZE - 4)
         }
-
       }
 
     }
