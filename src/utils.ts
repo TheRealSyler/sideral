@@ -10,7 +10,7 @@ export function toPx(n: number) {
   return `${n}px`
 }
 
-export async function loadTerrain(src: string): Promise<HTMLImageElement> {
+export async function loadTexture(src: string): Promise<HTMLImageElement> {
   const img = document.createElement('img')
   img.src = src
 

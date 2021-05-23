@@ -1,7 +1,7 @@
 
-import { Building } from './buildings';
+import { Building } from './building';
 
-export enum MapCellName {
+export enum MapCellTexturePos {
   'gras',
   'forest',
   'stone',
@@ -19,6 +19,8 @@ export enum MapCellName {
   'water coast 4',
   'fruits',
 }
+
+export type MapCellName = keyof typeof MapCellTexturePos
 
 export interface MapCell {
   type: MapCellName,

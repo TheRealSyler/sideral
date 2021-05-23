@@ -3,26 +3,68 @@ import { MapCell, MapCellName } from './map';
 import random from 'seedrandom'
 import { degToRad } from './utils';
 import { Game } from './game';
-import { BuildingNames } from './buildings';
+import { buildingInfo, BuildingNames, } from './building';
 
 function createMapCell(type: MapCellName, rotation: number, resourceAmount: number, building = null): MapCell {
   return { type, rotation, resourceAmount, building }
 }
 
 (async () => {
-  const b = 32
-  const map = new Array(b * b).fill(createMapCell(MapCellName['gras'], 0, -1)).map((v, i) =>
-    ({ type: v.type, rotation: degToRad(Math.floor(random('aw' + i)() * 4) * 90), resourceAmount: -1, building: null }))
-  map[33] = {
+  const b = 64
+  const map = new Array(b * b).fill(createMapCell('gras', 0, -1)).map((v, i) =>
+  ({
+    type: v.type, rotation: degToRad(Math.floor(random('aw' + i)() * 4) * 90), resourceAmount: 10000,
+    building: null
+
+    // {
+    //   name: 'bakery',
+    //   isUpgrading: false,
+    //   date: new Date(),
+    //   level: Math.floor(random('aw' + i)() * 15)
+    // } as any
+
+  }))
+  map[65] = {
     building: {
-      name: BuildingNames['bakery'],
-      baseProductionRate: 1,
-      level: 2
+      name: 'bakery',
+      isUpgrading: true,
+      date: new Date(),
+      level: 0
     } as any,
-    type: MapCellName['gras'],
+    type: 'gras',
     rotation: degToRad(180),
-    resourceAmount: 20
+    resourceAmount: 1000
   }
+  // map[37] = {
+  //   building: {
+  //     name: BuildingNames['bakery'],
+
+  //     level: 0
+  //   } as any,
+  //   type: MapCellName['gras'],
+  //   rotation: degToRad(180),
+  //   resourceAmount: 20
+  // }
+  // map[3] = {
+  //   building: {
+  //     name: BuildingNames['bakery'],
+
+  //     level: 12
+  //   } as any,
+  //   type: MapCellName['gras'],
+  //   rotation: degToRad(180),
+  //   resourceAmount: 20
+  // }
+  // map[35] = {
+  //   building: {
+  //     name: BuildingNames['bakery'],
+
+  //     level: 14
+  //   } as any,
+  //   type: MapCellName['gras'],
+  //   rotation: degToRad(180),
+  //   resourceAmount: 20
+  // }
   // map[1] = createMapCell(MapCellName['water coast'], degToRad(180), -1)
   // map[2] = createMapCell(MapCellName['water coast 2'], degToRad(90), -1)
   // map[3] = createMapCell(MapCellName['bush'], degToRad(90), 234)
@@ -43,3 +85,8 @@ function createMapCell(type: MapCellName, rotation: number, resourceAmount: numb
 
 })()
 
+// checkBuildingUpgradeTimes(BuildingNames['bakery'])
+// checkBuildingProductionTimes(BuildingNames['bakery'])
+
+
+// console.log(buildingInfo['bakery'])
