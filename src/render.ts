@@ -1,4 +1,4 @@
-import { getImageOffset } from "./utils";
+import { getTextureOffset } from "./utils";
 import { Map, MapCellTexturePos } from './map'
 import terrain from './assets/terrains.png';
 import { renderBuilding } from "./buildingRender";
@@ -23,7 +23,7 @@ export async function render(mapCanvas: CanvasCache, buildingCanvas: CanvasCache
     const x = rawX * MAP_CELL_SIZE
     const y = rawY * MAP_CELL_SIZE
 
-    const [offsetX, offsetY] = getImageOffset(MapCellTexturePos[cell.type], MAP_CELL_SIZE, MAP_CELLS_PER_ROW)
+    const [offsetX, offsetY] = getTextureOffset(MapCellTexturePos[cell.type], MAP_CELL_SIZE, MAP_CELLS_PER_ROW)
 
     mapCellCanvas.ctx.translate(MAP_CELL_SIZE / 2, MAP_CELL_SIZE / 2)
     mapCellCanvas.ctx.rotate(cell.rotation)

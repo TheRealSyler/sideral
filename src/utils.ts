@@ -19,7 +19,7 @@ export async function loadTexture(src: string): Promise<HTMLImageElement> {
   })
 }
 
-export function getImageOffset(index: number, sizePerCell: number, cellsPerRow: number) {
+export function getTextureOffset(index: number, sizePerCell: number, cellsPerRow: number) {
   const x = (index % cellsPerRow) * sizePerCell
   const y = Math.floor((index / cellsPerRow)) * sizePerCell
   return [x, y]

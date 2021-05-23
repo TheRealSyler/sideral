@@ -24,7 +24,7 @@ function createMapCell(type: MapCellName, rotation: number, resourceAmount: numb
     // } as any
 
   }))
-  map[65] = {
+  map[27] = {
     building: {
       name: 'bakery',
       isUpgrading: true,
@@ -35,7 +35,7 @@ function createMapCell(type: MapCellName, rotation: number, resourceAmount: numb
     rotation: degToRad(180),
     resourceAmount: 1000
   }
-  map[66] = {
+  map[35] = {
     building: {
       name: 'bakery',
       isUpgrading: true,
@@ -57,7 +57,7 @@ function createMapCell(type: MapCellName, rotation: number, resourceAmount: numb
     rotation: degToRad(180),
     resourceAmount: 1000
   }
-  map[68] = {
+  map[2048 + 32] = {
     building: {
       name: 'bakery',
       isUpgrading: true,

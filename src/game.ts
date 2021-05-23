@@ -1,3 +1,4 @@
+import { renderAnimation } from './animation';
 import { Building, BuildingInfo, buildingInfo } from "./building";
 import { buildingProductionEndDate, buildingUpgradeEndDate } from "./buildingFunctions";
 import { CanvasCache } from "./canvasCache";
@@ -19,8 +20,9 @@ export class Game {
   mapTextureCanvas = new CanvasCache(this.mapSize, 'Map Texture Canvas')
   buildingTextureCanvas = new CanvasCache(this.mapSize, 'Building Texture Canvas')
 
-  canDrag: boolean = false
-  dragCursorLock: boolean = false
+  canDrag = false
+  dragCursorLock = false
+  showSelected = false
 
   getViewportHeight = () => window.innerHeight - (UI_TOP_HEIGHT + UI_BOTTOM_HEIGHT)
   getViewportWidth = () => window.innerWidth
@@ -33,7 +35,7 @@ export class Game {
   })
   constructor(public map: Map, public mapWidth: number) {
     InitUI(this.state, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT)
-
+    document.body.appendChild(this.viewport.canvas)
 
     window.addEventListener('resize', this.resize);
 
@@ -51,14 +53,15 @@ export class Game {
   }
 
   private async start() {
-    document.body.appendChild(this.viewport.canvas)
+    // don't change the order of the function calls.
+    this.addCtxTransformTacking(this.viewport.ctx)
+    this.resize()
 
     await render(this.mapTextureCanvas, this.buildingTextureCanvas, this.map, this.mapWidth,)
 
+    this.viewport.ctx.translate(-this.mapSize / 2, -this.mapSize / 2)
 
-    this.addCtxTransformTacking(this.viewport.ctx)
-    this.resize()
-    this.draw()
+    this.draw(0)
     setInterval(this.logicLoop, 250)
   }
 
@@ -127,25 +130,18 @@ export class Game {
 
 
 
-  private draw = () => {
-
-    const p1 = this.viewport.ctx.transformedPoint(0, 0);
-    const p2 = this.viewport.ctx.transformedPoint(this.viewport.canvas.width, this.viewport.canvas.height);
-    this.viewport.ctx.clearRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
-
-    this.viewport.ctx.save();
-    this.viewport.ctx.setTransform(new DOMMatrix());
-    this.viewport.ctx.clearRect(0, 0, this.viewport.canvas.width, this.viewport.canvas.height);
-    this.viewport.ctx.restore();
+  private draw = async (delta: number) => {
 
     this.viewport.ctx.drawImage(this.mapTextureCanvas.canvas, 0, 0);
     this.viewport.ctx.drawImage(this.buildingTextureCanvas.canvas, 0, 0);
 
+
+    await this.drawAnimations(delta);
+
+
     // TODO improve this mess
     if (!this.dragCursorLock) {
-      const transform = this.viewport.ctx.getTransform()
-      const x = Math.round((this.lastX - transform.e) / transform.a)
-      const y = Math.round((this.lastY - transform.f) / transform.d)
+      const { x, y } = this.viewport.ctx.transformedPoint(this.lastX, this.lastY)
       const x2 = Math.floor(x / MAP_CELL_SIZE) * MAP_CELL_SIZE
       const y2 = Math.floor(y / MAP_CELL_SIZE) * MAP_CELL_SIZE
       this.viewport.ctx.strokeStyle = '#000'
@@ -156,6 +152,7 @@ export class Game {
       this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
       this.viewport.ctx.lineTo(x2, y2);
       this.viewport.ctx.stroke();
+
     }
     const selectedPos = this.state.get('selectedMapChunk')
     if (selectedPos) {
@@ -171,6 +168,42 @@ export class Game {
       this.viewport.ctx.stroke();
     }
     requestAnimationFrame(this.draw)
+  }
+
+  private async drawAnimations(delta: number) {
+    const { x: xStart, y: yStart } = this.viewport.ctx.transformedPoint(0, 0);
+    const { x: xEnd, y: yEnd } = this.viewport.ctx.transformedPoint(this.viewport.canvas.width, this.viewport.canvas.height);
+    const xStartCell = clamp(Math.floor(xStart / MAP_CELL_SIZE), this.mapWidth, 0);
+    const yStartCell = clamp(Math.floor(yStart / MAP_CELL_SIZE), this.mapWidth, 0);
+    const xEndCell = clamp(Math.floor(xEnd / MAP_CELL_SIZE), this.mapWidth, 0);
+    const yEndCell = clamp(Math.floor(yEnd / MAP_CELL_SIZE), this.mapWidth, 0);
+
+    this.viewport.ctx.strokeStyle = '#0f0'
+    for (let x = xStartCell; x <= xEndCell; x++) {
+      for (let y = yStartCell; y <= yEndCell; y++) {
+        const i = x + this.mapWidth * y;
+        const x2 = x * MAP_CELL_SIZE
+        const y2 = y * MAP_CELL_SIZE
+        const { building } = this.map[i]
+
+        if (building) {
+          this.viewport.ctx.beginPath();
+          this.viewport.ctx.moveTo(x2, y2);
+          this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
+          this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
+          this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
+          this.viewport.ctx.lineTo(x2, y2);
+          this.viewport.ctx.stroke();
+          if (building.isUpgrading) {
+
+            this.viewport.ctx.drawImage(await renderAnimation('build', delta), x2, y2)
+          }
+        }
+
+
+      }
+
+    }
   }
 
   private resize = () => {
@@ -259,6 +292,8 @@ export class Game {
     if (delta) this.zoom(delta);
     return evt.preventDefault() && false;
   };
+
+
 
 
 
