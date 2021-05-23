@@ -41,12 +41,10 @@ export class Game {
 
     this.viewport.canvas.addEventListener('DOMMouseScroll', this.handleScroll, false);
     this.viewport.canvas.addEventListener('mousewheel', this.handleScroll, false);
-
     this.viewport.canvas.addEventListener('mousedown', this.mousedown, false);
-
     this.viewport.canvas.addEventListener('mousemove', this.mousemove, false);
-
     this.viewport.canvas.addEventListener('mouseup', this.mouseup, false);
+    this.viewport.canvas.addEventListener('mouseleave', this.mouseleave, false);
 
     this.start()
 
@@ -140,7 +138,7 @@ export class Game {
 
 
     // TODO improve this mess
-    if (!this.dragCursorLock) {
+    if (this.showSelected) {
       const { x, y } = this.viewport.ctx.transformedPoint(this.lastX, this.lastY)
       const x2 = Math.floor(x / MAP_CELL_SIZE) * MAP_CELL_SIZE
       const y2 = Math.floor(y / MAP_CELL_SIZE) * MAP_CELL_SIZE
@@ -223,6 +221,9 @@ export class Game {
 
     this.canDrag = true
   }
+  private mouseleave = () => {
+    this.showSelected = false
+  }
   private mouseup = (e: MouseEvent) => {
 
     if (!this.dragCursorLock) {
@@ -240,6 +241,7 @@ export class Game {
 
     this.canDrag = false;
     this.dragCursorLock = false
+    this.showSelected = true
     document.exitPointerLock()
   }
 
@@ -248,11 +250,11 @@ export class Game {
     this.lastX = evt.offsetX || (evt.pageX - this.viewport.canvas.offsetLeft);
     this.lastY = evt.offsetY || (evt.pageY - this.viewport.canvas.offsetTop);
 
-
     if (this.canDrag) {
       if (!this.dragCursorLock) {
         this.viewport.canvas.requestPointerLock()
         this.dragCursorLock = true
+        this.showSelected = false
       }
       const transform = this.viewport.ctx.getTransform()
       const { a, b, c, d, e, f } = transform
@@ -260,7 +262,10 @@ export class Game {
       let y = clamp(f + evt.movementY * MAP_MOVE_FACTOR, MAP_PADDING, this.getMaxYPos(a))
 
       this.viewport.ctx.setTransform(a, b, c, d, x, y)
+    } else {
+      this.showSelected = true
     }
+
   }
 
   private zoom = (clicks: number) => {
