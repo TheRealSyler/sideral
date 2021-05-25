@@ -24,7 +24,7 @@ export class Game {
 
   canDrag = false
   dragCursorLock = false
-  showSelected = false
+  showHover = false
 
   getViewportHeight = () => window.innerHeight - (UI_TOP_HEIGHT + UI_BOTTOM_HEIGHT)
   getViewportWidth = () => window.innerWidth
@@ -62,7 +62,8 @@ export class Game {
 
     await render(this.mapTextureCanvas, this.buildingTextureCanvas, this.map, this.mapWidth,)
 
-    this.viewport.ctx.translate(-this.mapSize / 2, -this.mapSize / 2)
+    this.viewport.ctx.translate((-this.mapSize + this.viewport.canvas.width) / 2, (-this.mapSize + this.viewport.canvas.height) / 2)
+
 
     this.draw(0)
     setInterval(this.logicLoop, 250)
@@ -70,16 +71,16 @@ export class Game {
 
   private logicLoop = async () => {
     const time = Date.now()
-    for (let i = 0; i < this.map.length; i++) {
-      const { building } = this.map[i];
-      const map = this.map[i];
+    for (let i = this.map.indices.startIndex; i < this.map.indices.endIndex; i++) {
+      const { building } = this.map.cells[i];
+      const cell = this.map.cells[i];
 
       if (building) {
         const info = buildingInfo[building.name]
         if (building.isUpgrading) {
           await this.buildingUpgradeCheck(building, info, time, i);
         } else {
-          this.buildingResourceCheck(info, building, time, map);
+          this.buildingResourceCheck(info, building, time, cell);
         }
       }
     }
@@ -110,15 +111,15 @@ export class Game {
 
   }
 
-  private buildingResourceCheck(info: BuildingInfo, building: Building, time: number, map: MapCell) {
+  private buildingResourceCheck(info: BuildingInfo, building: Building, time: number, cell: MapCell) {
     if (info.canProduce) {
       const requirements = info.productionResourceRequirements;
       if (requirements) {
       } else {
         if (buildingProductionEndDate(building, info) < time) {
           building.date = new Date;
-          if (map.resourceAmount >= 1) {
-            map.resourceAmount--;
+          if (cell.resourceAmount >= 1) {
+            cell.resourceAmount--;
             this.state.resendListeners('selectedMapChunk');
             this.state.setFunc('bread', (v) => v + 1);
 
@@ -147,7 +148,7 @@ export class Game {
 
 
     // TODO improve this mess
-    if (this.showSelected) {
+    if (this.showHover) {
       const { x, y } = this.viewport.ctx.transformedPoint(this.lastX, this.lastY)
       const x2 = Math.floor(x / MAP_CELL_SIZE) * MAP_CELL_SIZE
       const y2 = Math.floor(y / MAP_CELL_SIZE) * MAP_CELL_SIZE
@@ -174,6 +175,23 @@ export class Game {
       this.viewport.ctx.lineTo(x2, y2);
       this.viewport.ctx.stroke();
     }
+    // draw map island bounding box
+
+    // {
+    //   const x = (this.map.indices.startIndex % this.mapWidth) * MAP_CELL_SIZE
+    //   const y = Math.floor(this.map.indices.startIndex / this.mapWidth) * MAP_CELL_SIZE
+    //   const x2 = (this.map.indices.endIndex % this.mapWidth) * MAP_CELL_SIZE + MAP_CELL_SIZE
+    //   const y2 = Math.floor(this.map.indices.endIndex / this.mapWidth) * MAP_CELL_SIZE + MAP_CELL_SIZE
+
+    //   this.viewport.ctx.strokeStyle = '#f00'
+    //   this.viewport.ctx.beginPath();
+    //   this.viewport.ctx.moveTo(x, y);
+    //   this.viewport.ctx.lineTo(x2, y);
+    //   this.viewport.ctx.lineTo(x2, y2);
+    //   this.viewport.ctx.lineTo(x, y2);
+    //   this.viewport.ctx.lineTo(x, y);
+    //   this.viewport.ctx.stroke();
+    // }
     requestAnimationFrame(this.draw)
   }
 
@@ -208,7 +226,7 @@ export class Game {
         const i = x + this.mapWidth * y;
         const x2 = x * MAP_CELL_SIZE
         const y2 = y * MAP_CELL_SIZE
-        const { building } = this.map[i]
+        const { building } = this.map.cells[i]
         if (building?.isUpgrading) {
           this.viewport.ctx.drawImage(await renderAnimation('build', delta), x2, y2)
           this.viewport.ctx.fillText(
@@ -216,6 +234,29 @@ export class Game {
             x2 + 2,
             y2 + 10, MAP_CELL_SIZE - 4)
         }
+        // const cell = this.map[i]
+        // switch (cell.type) {
+        //   case 'water':
+        //   case 'water coast':
+        //   case 'water coast 2':
+        //   case 'water coast 3':
+        //   case 'water coast 4':
+
+        //     this.viewport.ctx.strokeStyle = '#f0f'
+        //     this.viewport.ctx.beginPath();
+        //     this.viewport.ctx.moveTo(x2, y2);
+        //     this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
+        //     this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
+        //     this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
+        //     this.viewport.ctx.lineTo(x2, y2);
+        //     this.viewport.ctx.stroke();
+        //     break;
+
+        // }
+        this.viewport.ctx.fillText(`x:${x} y: ${y} i: ${i}`,
+          x2 + 2,
+          y2 + 10, MAP_CELL_SIZE - 4)
+
       }
 
     }
@@ -239,7 +280,7 @@ export class Game {
     this.canDrag = true
   }
   private mouseleave = () => {
-    this.showSelected = false
+    this.showHover = false
   }
   private mouseup = (e: MouseEvent) => {
 
@@ -251,14 +292,14 @@ export class Game {
       const x2 = Math.floor(x / MAP_CELL_SIZE)
       const y2 = Math.floor(y / MAP_CELL_SIZE)
       if (x >= 0 && x < this.mapSize && y >= 0 && y < this.mapSize) {
-        this.state.set('selectedMapChunk', { cell: this.map[x2 + this.mapWidth * y2], x: x2, y: y2 })
+        this.state.set('selectedMapChunk', { cell: this.map.cells[x2 + this.mapWidth * y2], x: x2, y: y2 })
       }
 
     }
 
     this.canDrag = false;
     this.dragCursorLock = false
-    this.showSelected = true
+    this.showHover = true
     document.exitPointerLock()
   }
 
@@ -271,7 +312,7 @@ export class Game {
       if (!this.dragCursorLock) {
         this.viewport.canvas.requestPointerLock()
         this.dragCursorLock = true
-        this.showSelected = false
+        this.showHover = false
       }
       const transform = this.viewport.ctx.getTransform()
       const { a, b, c, d, e, f } = transform
@@ -280,7 +321,7 @@ export class Game {
 
       this.viewport.ctx.setTransform(a, b, c, d, x, y)
     } else {
-      this.showSelected = true
+      this.showHover = true
     }
 
   }

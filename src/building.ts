@@ -19,6 +19,7 @@ export const buildings: { [key in MapCellName]: null | BuildingNames[] } = {
   "water coast 2": null,
   "water coast 3": null,
   "water coast 4": null,
+  "water pond": null,
   "water coast": null,
   berries: null,
   bush: null,

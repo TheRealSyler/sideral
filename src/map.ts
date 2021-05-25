@@ -17,6 +17,7 @@ export enum MapCellTexturePos {
   'water coast 2',
   'water coast 3',
   'water coast 4',
+  'water pond',
   'fruits',
 }
 
@@ -29,7 +30,10 @@ export interface MapCell {
   building: Building | null
 }
 
-export type Map = MapCell[]
+export type Map = {
+  cells: MapCell[],
+  indices: { startIndex: number, endIndex: number }
+}
 
 
 

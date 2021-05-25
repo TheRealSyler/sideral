@@ -16,8 +16,8 @@ export async function render(mapCanvas: CanvasCache, buildingCanvas: CanvasCache
 
   const img = await textureCache.getTexture('terrain')
 
-  for (let i = 0; i < map.length; i++) {
-    const cell = map[i];
+  for (let i = 0; i < map.cells.length; i++) {
+    const cell = map.cells[i];
     const rawX = (i % width)
     const rawY = Math.floor((i / width))
     const x = rawX * MAP_CELL_SIZE
