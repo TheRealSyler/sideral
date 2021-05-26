@@ -2,7 +2,6 @@ import { Map, MapCell, MapCellName } from './map';
 import { degToRad, distanceToEllipse, map as mapValue } from './utils';
 import random from 'seedrandom'
 
-import noise from 'asm-noise';
 import { Perlin } from './noise';
 
 
@@ -20,9 +19,9 @@ export function generateMap(width: number, seed: number) {
   for (let i = 0; i < mapSize; i++) {
     const x = Math.floor(i % width);
     const y = Math.floor((i / width));
-    const n = noise(x, y)
-    if (n > max) max = n
-    if (n < min) min = n
+    // const n = noise(x, y)
+    // if (n > max) max = n
+    // if (n < min) min = n
   }
 
 

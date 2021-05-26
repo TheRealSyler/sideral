@@ -25,10 +25,8 @@
   "license": "MIT",
   "author": "syler <hileo77@gmail.com>",
   "dependencies": {
-    "asm-noise": "^1.0.2",
     "dom-chef": "^5.0.0",
     "parse-ms": "^3.0.0",
-    "seedrandom": "^3.0.5",
-    "tumult": "^3.0.14"
+    "seedrandom": "^3.0.5"
   }
 }
