@@ -19,6 +19,13 @@ export enum MapCellTexturePos {
   'water coast 4',
   'water pond',
   'fruits',
+  'placeholder_1',
+  'placeholder_2',
+  'placeholder_3',
+  'placeholder_4',
+  'placeholder_5',
+  'placeholder_6',
+  'placeholder_7',
 }
 
 export type MapCellName = keyof typeof MapCellTexturePos

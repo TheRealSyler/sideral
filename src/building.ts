@@ -11,26 +11,10 @@ export interface Building {
 
 export type BuildingNames = 'house' | 'woodcutter' | 'bakery'
 
-
 // TODO think of a better name
-export const buildings: { [key in MapCellName]: null | BuildingNames[] } = {
+export const buildings: { [key in MapCellName]?: BuildingNames[] } = {
   gras: ['house', 'bakery'],
-  forest: ['woodcutter'],
-  "water coast 2": null,
-  "water coast 3": null,
-  "water coast 4": null,
-  "water pond": null,
-  "water coast": null,
-  berries: null,
-  bush: null,
-  clay: null,
-  copper: null,
-  fruits: null,
-  gold: null,
-  iron: null,
-  stone: null,
-  tin: null,
-  water: null,
+  forest: ['woodcutter']
 }
 
 interface BaseBuildingInfo {

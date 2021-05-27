@@ -35,9 +35,20 @@ export function distance(x1: number, y1: number, x2: number, y2: number) {
 export function distanceToEllipse(x1: number, y1: number, x2: number, y2: number, xSize: number, ySize: number) {
   const a = (x1 - x2) / xSize;
   const b = (y1 - y2) / ySize;
-  return Math.sqrt(a * a + ((b * b)))
+  return Math.sqrt(a * a + b * b)
+}
+export function distanceSingleAxis(x1: number, x2: number) {
+  const a = (x1 - x2);
+  return Math.sqrt(a * a)
+}
+/**Returns angle to second point in radians*/
+export function angleTo(x1: number, y1: number, x2: number, y2: number) {
+  return Math.atan2(y2 - y1, x2 - x1);
 }
 
+export function radToDeg(n: number) {
+  return n * 180 / Math.PI
+}
 
 export function interpolate(a0: number, a1: number, w: number) {
 

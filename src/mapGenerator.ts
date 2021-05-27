@@ -1,8 +1,7 @@
 import { Map, MapCell, MapCellName } from './map';
-import { degToRad, distanceToEllipse, map as mapValue } from './utils';
+import { degToRad, map as mapValue } from './utils';
 import random from 'seedrandom'
-
-import { Perlin } from './noise';
+import { islandMaskGen, forestMaskGen, oreMaskGen } from './mapMasks';
 
 
 export function generateMap(width: number, seed: number) {
@@ -11,7 +10,9 @@ export function generateMap(width: number, seed: number) {
 
   const mapSize = width * width
 
-  const { mask: landMask, indices } = islandMask(seed, width)
+  const { mask: islandMask, indices } = islandMaskGen(seed, width)
+  const forestMask = forestMaskGen(seed, width)
+  const oreMask = oreMaskGen(seed, width, islandMask)
   const map: Map = { cells: [], indices }
 
   for (let i = 0; i < mapSize; i++) {
@@ -21,10 +22,31 @@ export function generateMap(width: number, seed: number) {
 
     let type: MapCell['type'] = 'water'
     let rotation = degToRad(Math.floor(random('' + seed + i * y * x)() * 4) * 90);
-    if (landMask[i]) {
+    if (islandMask[i]) {
+      if (forestMask[i]) {
+        switch (forestMask[i]) {
+          case 1:
+            type = 'forest'
+
+            break;
+          case 0.5:
+            type = random('Bush' + i)() > 0.2 ? 'bush' : 'berries'
+            break;
+        }
+      } else if (oreMask[i]) {
+        switch (oreMask[i]) {
+          case 1:
+            type = 'stone'
+            break;
+          case 0.5:
+            type = 'clay'
+            break;
+        }
+      } else {
+      }
       type = 'gras'
     } else {
-      const { newType, newRotation } = makeCoast(landMask, i, width)
+      const { newType, newRotation } = makeCoast(islandMask, i, width)
       type = newType
       rotation = newRotation
     }
@@ -62,13 +84,13 @@ function makeCoast(landMask: number[], i: number, width: number,) {
   if (isLandAbove && isLandBelow && isNextLand && isPrevLand) {
     type = 'water pond';
   } else if (isLandAbove + isLandBelow + isNextLand + isPrevLand === 3) {
-    type = 'clay';
+    type = 'placeholder_3';
     landMask[i] = 1;
   } else if (isPrevLand && isNextLand) {
-    type = 'gold';
+    type = 'placeholder_3';
     landMask[i] = 1;
   } else if (isLandBelow && isLandAbove) {
-    type = 'berries';
+    type = 'placeholder_3';
     landMask[i] = 1;
   } else if (isLandBelow && isNextLand) {
     type = 'water coast 2';
@@ -132,65 +154,5 @@ function makeCoast(landMask: number[], i: number, width: number,) {
   return { newType: type, newRotation: rotation };
 }
 
-export function islandMask(seed: number, width: number) {
-  const { noise2D } = Perlin({ seed: seed, lacunarity: 10 / width, octaves: 8 })
 
-  const mapSize = width * width
-  const out: number[] = new Array(mapSize)
-  let min = 1
-  let max = 0
-  for (let i = 0; i < mapSize; i++) {
-    const x = Math.floor(i % width);
-    const y = Math.floor((i / width));
-    const n = noise2D(x, y)
-    if (n > max) max = n
-    if (n < min) min = n
-  }
-
-  const o = {
-    x: 2,
-    y: 2
-  }
-  const boundingBox = {
-    x: width,
-    y: width,
-    xEnd: 0,
-    yEnd: 0,
-
-  }
-
-
-  o[random('Oval' + seed)() > 0.5 ? 'y' : 'x'] = mapValue(random('Oval Val' + seed)(), 0, 1, 1, 2)
-
-  for (let j = 0; j < mapSize; j++) {
-    const x = (j % width);
-    const y = Math.floor((j / width));
-    const dist = distanceToEllipse(x, y, (width / 2) - 0.5, (width / 2) - 0.5, o.x, o.y) / width
-
-    const n = mapValue(noise2D(x, y), min, max, 0, 1)
-    const c0 = (1 - dist * 4)
-    const ringStart = 0.0
-    const ringEnd = 0.4
-    const cMid = c0 > ringEnd ? 1 : 0
-    const cRing = c0 > ringStart && c0 < ringEnd ? 1 : 0
-    const cRingGrad = mapValue(cRing * c0, ringStart, ringEnd, -0.1, 1.4)
-    const res = ((n - 0.2) * cRing) + cRingGrad + (cMid * 2)
-    const resThreshold = 1
-    out[j] = res > resThreshold ? 1 : 0
-
-    if (res > resThreshold && x < boundingBox.x) boundingBox.x = x
-    if (res > resThreshold && y < boundingBox.y) boundingBox.y = y
-    if (res > resThreshold && x > boundingBox.xEnd) boundingBox.xEnd = x
-    if (res > resThreshold && y > boundingBox.yEnd) boundingBox.yEnd = y
-
-
-
-  }
-  const indices: Map['indices'] = {
-    startIndex: (boundingBox.x - 1) + width * (boundingBox.y - 1),
-    endIndex: (boundingBox.xEnd + 1) + width * (boundingBox.yEnd + 1),
-  }
-
-  return { mask: out, indices }
-}
 
