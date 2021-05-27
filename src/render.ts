@@ -3,7 +3,7 @@ import { Map, MapCellTexturePos } from './map'
 import terrain from './assets/terrains.png';
 import { renderBuilding } from "./buildingRender";
 import { TextureCache } from "./textureCache";
-import { MAP_CELL_SIZE, MAP_CELLS_PER_ROW } from "./globalConstants";
+import { MAP_CELL_SIZE, MAP_TEXTURE_CHUNKS_PER_ROW } from "./globalConstants";
 import { CanvasCache } from "./canvasCache";
 import { Building } from "./building";
 
@@ -23,7 +23,7 @@ export async function render(mapCanvas: CanvasCache, buildingCanvas: CanvasCache
     const x = rawX * MAP_CELL_SIZE
     const y = rawY * MAP_CELL_SIZE
 
-    const [offsetX, offsetY] = getTextureOffset(MapCellTexturePos[cell.type], MAP_CELL_SIZE, MAP_CELLS_PER_ROW)
+    const [offsetX, offsetY] = getTextureOffset(MapCellTexturePos[cell.type], MAP_CELL_SIZE, MAP_TEXTURE_CHUNKS_PER_ROW)
 
     mapCellCanvas.ctx.translate(MAP_CELL_SIZE / 2, MAP_CELL_SIZE / 2)
     mapCellCanvas.ctx.rotate(cell.rotation)
@@ -32,6 +32,7 @@ export async function render(mapCanvas: CanvasCache, buildingCanvas: CanvasCache
     mapCellCanvas.ctx.resetTransform()
 
     mapCanvas.ctx.drawImage(mapCellCanvas.canvas, x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
+
     if (cell.building) {
       buildingCanvas.ctx.drawImage(await renderBuilding(cell.building), x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
     }

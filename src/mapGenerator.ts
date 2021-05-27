@@ -14,17 +14,6 @@ export function generateMap(width: number, seed: number) {
   const { mask: landMask, indices } = islandMask(seed, width)
   const map: Map = { cells: [], indices }
 
-  let min = 1
-  let max = 0
-  for (let i = 0; i < mapSize; i++) {
-    const x = Math.floor(i % width);
-    const y = Math.floor((i / width));
-    // const n = noise(x, y)
-    // if (n > max) max = n
-    // if (n < min) min = n
-  }
-
-
   for (let i = 0; i < mapSize; i++) {
     const x = (i % width)
     const y = Math.floor((i / width))
@@ -97,7 +86,6 @@ function makeCoast(landMask: number[], i: number, width: number,) {
     if (isLandDownRight) {
       type = 'water coast 2';
       rotation = degToRad(0);
-      // landMask[i] = 1;
     } else {
       type = 'water coast';
       rotation = degToRad(0);
@@ -203,8 +191,6 @@ export function islandMask(seed: number, width: number) {
     endIndex: (boundingBox.xEnd + 1) + width * (boundingBox.yEnd + 1),
   }
 
-  console.log(boundingBox)
-  console.log(indices)
   return { mask: out, indices }
 }
 

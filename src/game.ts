@@ -64,7 +64,6 @@ export class Game {
 
     this.viewport.ctx.translate((-this.mapSize + this.viewport.canvas.width) / 2, (-this.mapSize + this.viewport.canvas.height) / 2)
 
-
     this.draw(0)
     setInterval(this.logicLoop, 250)
   }
@@ -253,9 +252,9 @@ export class Game {
         //     break;
 
         // }
-        this.viewport.ctx.fillText(`x:${x} y: ${y} i: ${i}`,
-          x2 + 2,
-          y2 + 10, MAP_CELL_SIZE - 4)
+        // this.viewport.ctx.fillText(`x:${x} y: ${y} i: ${i}`,
+        //   x2 + 2,
+        //   y2 + 10, MAP_CELL_SIZE - 4)
 
       }
 
@@ -335,6 +334,7 @@ export class Game {
     if (scale < ZOOM_MAX_SCALE && factor > 1 || scale > ZOOM_MIN_SCALE && factor < 1) {
 
       const pt = this.viewport.ctx.transformedPoint(this.lastX, this.lastY);
+
       this.viewport.ctx.translate(pt.x, pt.y);
 
       this.viewport.ctx.scale(factor, factor);
