@@ -8,15 +8,20 @@ import { forestMaskGen, islandMaskGen, oreMaskGen } from './mapMasks';
 
 
 (async () => {
+  let a = false
+  a = true
 
+  const seed = 0
+  if (a) {
+    // const t = performance.now()
+    const m = generateMap(MAP_CELLS_PER_ROW, seed)
+    // console.log('S T', performance.now() - t)
+    new Game(m, MAP_CELLS_PER_ROW)
+  } else {
 
-  // const t = performance.now()
-
-  // console.log('S T', performance.now() - t)
-  // new Game(generateMap(MAP_CELLS_PER_ROW, 0), MAP_CELLS_PER_ROW)
-
-  const s = 64
-  const viewer = new CanvasViewer(s, 800 / s)
-  viewer.drawNumArray(oreMaskGen(0, s, islandMaskGen(0, s).mask))
+    const s = 64
+    const viewer = new CanvasViewer(s, 800 / s)
+    viewer.drawNumArray(oreMaskGen(seed, s, islandMaskGen(seed, s).mask))
+  }
 
 })()

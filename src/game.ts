@@ -35,6 +35,7 @@ export class Game {
     ...defaultResources,
     selectedMapChunk: null
   })
+
   constructor(public map: Map, public mapWidth: number) {
     InitUI(this.state, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT)
     document.body.appendChild(this.viewport.canvas)
@@ -139,12 +140,12 @@ export class Game {
     this.viewport.ctx.drawImage(this.buildingTextureCanvas.canvas, 0, 0);
 
 
+
     const { x: xStart, y: yStart } = this.viewport.ctx.transformedPoint(0, 0);
     const { x: xEnd, y: yEnd } = this.viewport.ctx.transformedPoint(this.viewport.canvas.width, this.viewport.canvas.height);
     this.drawMinimap(xStart, yStart, xEnd, yEnd);
 
     await this.drawAnimations(delta, xStart, yStart, xEnd, yEnd);
-
 
     // TODO improve this mess
     if (this.showHover) {
@@ -191,6 +192,7 @@ export class Game {
     //   this.viewport.ctx.lineTo(x, y);
     //   this.viewport.ctx.stroke();
     // }
+
     requestAnimationFrame(this.draw)
   }
 

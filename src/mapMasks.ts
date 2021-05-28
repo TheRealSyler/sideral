@@ -1,7 +1,7 @@
 import { Perlin } from './noise'
 import random from 'seedrandom'
 import { Map } from './map';
-import { distance, distanceToEllipse, distanceSingleAxis, map, angleTo, radToDeg } from './utils'
+import { distance, distanceToEllipse, map, clamp, degToRad } from './utils'
 
 
 export function islandMaskGen(seed: number, width: number) {
@@ -77,60 +77,73 @@ export function forestMaskGen(seed: number, width: number) {
 
   return out
 }
-export function oreMaskGen(seed: number, width: number, islandMask: number[]) {
+export function oreMaskGen(seed: number, width: number, island: number[]) {
   const mapSize = width * width
+
   const out: number[] = new Array(mapSize).fill(0)
 
+  const maxSpots = 30
+  let spots = clamp(random('ore spots' + seed)() * maxSpots, maxSpots, 4)
 
+  const maxSpotSize = 12
 
-  let spots = random('ore spots')() * 16
-  const size = 8
-  for (let i = 0; i < mapSize; i++) {
-    if (islandMask[i]) {
-
-      out[i] = 0.1
+  let i = 0
+  let spotSize = 8
+  let x = 0
+  let y = 0
+  let seedAddition = i
+  let angle = degToRad(random('angle' + seed + seedAddition)() * 360)
+  const resetIndex = (r: number) => {
+    i = 0
+    while (island[i] !== 1) {
+      i = Math.floor(random('getIndex' + r)() * mapSize)
+      r++
     }
-    const x = (i % width);
-    const y = Math.floor((i / width));
-    if (x === width / 2 && y === width / 2) {
-      out[i] = 0.5
-    }
+    x = (i % width);
+    y = Math.floor((i / width));
   }
-  let startIndex = 0
-  for (let i = 0; i < mapSize; i++) {
-    const chance = random('ore chance' + i)() < 0.01
-    if (islandMask[i]) {
-      if (chance) {
-        const x = (i % width);
-        const y = Math.floor((i / width));
-        const angle = angleTo(x, y, 38, (width / 2) - 0.5)
-        const newX = x + Math.cos(angle) * 10
-        const newY = y + Math.sin(angle) * 10
-        console.log('x', x, 'y', y, 'newX', newX, 'newY', newY, 'angle', radToDeg(angle))
-        out[i] = 1
-        out[Math.round(newX) + width * Math.round(newY)] = 0.9
-        startIndex = i
-        break;
-      } else {
-        out[i] = 0.1
-      }
+  resetIndex(0)
+
+  while (spots > 0) {
+    spotSize = clamp(Math.round(random('rs' + seedAddition)() * maxSpotSize), maxSpotSize, 4)
+
+    if (random('1' + seedAddition)() > 0.8) {
+      angle = degToRad(random('2' + seed + seedAddition)() * 360)
+    } else {
+      angle += degToRad(random('3' + seed)() * 30)
     }
 
+
+    const spot = oreSpot(seed, spotSize);
+    for (let i = 0; i < spot.length; i++) {
+      const spotX = (i % spotSize);
+      const spotY = Math.floor((i / spotSize));
+      const newIndex = (x + spotX) + width * (y + spotY);
+
+      out[newIndex] = clamp((out[newIndex] + spot[i]), 1, 0)
+    }
+
+    if (random('resetIndex' + seedAddition)() > 0.7) {
+      resetIndex(seedAddition)
+    } else {
+
+      x = x + Math.round(Math.cos(angle) * spotSize / 2)
+      y = y + Math.round(Math.sin(angle) * spotSize / 2)
+    }
+    seedAddition++
+    spots--
   }
-
-
 
   return out
 }
 
-export function oreSpots(seed: number, width: number) {
+function oreSpot(seed: number, width: number) {
   const { noise2D } = Perlin({ seed: seed + 3, lacunarity: 10 / width, octaves: 8 })
 
   const mapSize = width * width
   const out: number[] = new Array(mapSize)
 
   const noise = getAdjustedNoise(mapSize, width, noise2D);
-
 
   for (let i = 0; i < mapSize; i++) {
     const x = (i % width);

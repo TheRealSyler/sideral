@@ -18,7 +18,7 @@ export enum MapCellTexturePos {
   'water coast 3',
   'water coast 4',
   'water pond',
-  'fruits',
+  'placeholder_0',
   'placeholder_1',
   'placeholder_2',
   'placeholder_3',
