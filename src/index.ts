@@ -3,7 +3,7 @@ import { Game } from './game';
 import { generateMap } from './mapGenerator';
 import { MAP_CELLS_PER_ROW } from './globalConstants';
 import { CanvasViewer } from './canvasViewer';
-import { forestMaskGen, islandMaskGen, oreMaskGen } from './mapMasks';
+import { islandMaskGen, oreMaskGen } from './mapMasks';
 
 (async () => {
 

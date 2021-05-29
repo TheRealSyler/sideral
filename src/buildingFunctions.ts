@@ -1,21 +1,7 @@
 import { Building, BuildingInfo, BuildingNames, buildingInfo, ProductionBuildingInfo, BuildingLevel, BuildingLevelsEnum, LevelRequirement } from "./building";
 import { fromNow } from "./time";
 
-export function displayBuildingLevel(level: number) {
-  switch (level) {
-    case -1:
-    case 0:
-    case 1:
-    case 2:
-    case 3:
-      return 'In Construction'
-    case 14:
-    case 15:
-      return 'Destroyed'
-    default:
-      return convertBuildingLevel(level)
-  }
-}
+
 
 export function newBuilding(type: BuildingNames): Building {
   return {

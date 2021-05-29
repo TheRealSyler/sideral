@@ -1,15 +1,15 @@
-import { MapCell, MapCellTexturePos } from "./map";
+import { MapCell } from "./map";
 import { State, GameState } from "./state";
 import { toPx } from "./utils";
-import { Fragment, h } from 'dom-chef'
+import { h } from 'dom-chef'
 import { defaultResources, GameResources, checkAndSubtractResources } from "./resources";
-import { Building, buildingInfo, BuildingNames, cellBuildings, } from "./building";
+import { buildingInfo, BuildingNames, cellBuildings, } from "./building";
 import { fromNow } from "./time";
-import { Game } from "./game";
 import { UiEvents } from "./uiEvents";
-import { buildingUpgradeEndDate, buildingProductionEndDate, displayBuildingLevel, newBuilding, getLevelRequirement, convertBuildingLevel } from "./buildingFunctions";
+import { buildingUpgradeEndDate, buildingProductionEndDate, newBuilding, getLevelRequirement, convertBuildingLevel } from "./buildingFunctions";
 import { Save } from './save';
 import { checkAchievementRequirement } from './achievements';
+import { cellIcons } from './icons';
 
 export function InitUI(state: State<GameState>, gameSave: Save, topHeight: number, bottomHeight: number) {
   topUI(state, topHeight);
@@ -37,19 +37,21 @@ function topUI(state: State<GameState>, topHeight: number) {
 function bottomUI(state: State<GameState>, gameSave: Save, bottomHeight: number,) {
   document.body.style.setProperty('--bottom-height', `${bottomHeight}px`)
   const uiEvents = new UiEvents()
-  const cellName = <span></span>;
-  const mapCellResources = <span></span>;
-  const cellBuilding = <span className="building-cards"></span>;
+  const cellName = <span> - </span>;
+  const cellIcon = <div className="cell-icon"></div>;
+  const cellResourcesAmount = <span></span>;
+  const cellBuilding = <span className="building-cards"> </span>;
 
   const upgradeTimeLeftEvent = 'upgrade-time';
   state.addListener('selectedMapChunk', (v) => {
     uiEvents.remove(upgradeTimeLeftEvent)
     if (v) {
       const { cell } = v;
+      cellIcon.style.backgroundImage = `url(${cellIcons[cell.type]})`
       cellName.textContent = cell.type;
-      mapCellResources.textContent = cell.resourceAmount === -1 ?
-        'No Resource' :
-        '' + cell.resourceAmount || 'Depleted';
+      cellResourcesAmount.textContent = cell.resourceAmount === -1 ?
+        '' :
+        `(${cell.resourceAmount})` || 'Depleted';
 
       cellBuilding.innerHTML = ''
       const building = cell.building
@@ -88,10 +90,12 @@ function bottomUI(state: State<GameState>, gameSave: Save, bottomHeight: number,
   });
 
   const bottom = <div className="ui-bottom" style={{ height: bottomHeight }}>
-    <div >
-      {cellName}
-      <br />
-      ({mapCellResources})
+    <div className="cell">
+      <div className="cell-name">
+        {cellName}
+        {cellResourcesAmount}
+      </div>
+      {cellIcon}
 
     </div>
     <div>
@@ -103,6 +107,8 @@ function bottomUI(state: State<GameState>, gameSave: Save, bottomHeight: number,
 
   document.body.appendChild(bottom);
 }
+
+
 
 function buildingCard(
   building: BuildingNames,
