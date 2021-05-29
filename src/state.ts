@@ -1,5 +1,5 @@
 import { MapCell } from "./map";
-import { GameResources } from "./resources";
+import { Resources } from "./resources";
 
 export class State<State extends { [key: string]: any }> {
   private listeners: [keyof State, (val: any) => void][] = []
@@ -31,7 +31,7 @@ export class State<State extends { [key: string]: any }> {
   }
 }
 
-export interface GameState extends GameResources {
+export interface GameState extends Resources {
   selectedMapChunk: null | { cell: MapCell, x: number, y: number }
 }
 

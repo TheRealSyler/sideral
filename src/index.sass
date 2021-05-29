@@ -11,6 +11,7 @@ body
   --text: #eee
   --text-disabled: #aaa
   --bottom-height: 0px
+  --cell-icon-size: 0px
   background: var(--bg)
   color: var(--text)
   font-family: Roboto, monospace
@@ -28,24 +29,24 @@ body
     top: 0
     right: 0
     left: 0
-
-    border-bottom: 1px solid #0af
     box-sizing: border-box
     background: var( --top-bar-bg)
+    display: flex
+    gap: 1rem
+
   &-bottom
     position: fixed
     z-index: 1
     bottom: 0
     right: var(--bottom-height)
     left: 0
-
-    border-top: 1px solid #0af
     box-sizing: border-box
     background: var( --bottom-bar-bg)
     overflow: auto
     display: flex
     gap: 2rem
     padding: 1rem
+
 .minimap
   position: fixed
   z-index: 2
@@ -66,18 +67,19 @@ body
   text-transform: capitalize
   gap: 10px
   min-width: 150px
-  &-resources
-    display: flex
-    flex-direction: column
+  justify-content: space-between
 
-  &-icon
-    width: 64px
-    height: 64px
-    background: #000
   &-middle
     display: flex
     gap: 10px
-
+    text-align: left
+    text-transform: none
+  &-column
+    display: flex
+    flex-direction: column
+  &-resources
+    display: flex
+    flex-direction: column
 .button
   border: none
 
@@ -107,5 +109,11 @@ body
     justify-content: space-between
     text-transform: capitalize
   &-icon
-    width: 100px
-    height: 100px
+    width: var(--cell-icon-size)
+    height: var(--cell-icon-size)
+
+.resource
+  display: flex
+  align-items: center
+  gap: 4px
+  text-transform: none

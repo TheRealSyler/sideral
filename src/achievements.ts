@@ -1,15 +1,16 @@
 
 export interface Achievements {
-  baseI?: true;
-  baseII?: true;
-  baseIII?: true;
-  baseIV?: true;
-  baseV?: true;
-  baseVI?: true;
-  baseVII?: true;
-  baseVIII?: true;
-  baseIX?: true;
-  baseX?: true;
+  'Base I'?: true;
+  'Base II'?: true;
+  'Base III'?: true;
+  'Base IV'?: true;
+  'Base V'?: true;
+  'Base VI'?: true;
+  'Base VII'?: true;
+  'Base VIII'?: true;
+  'Base IX'?: true;
+  'Base X'?: true;
+  'Woodcutter I'?: true;
 };
 
 export type AchievementName = keyof Achievements;

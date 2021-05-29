@@ -16,7 +16,7 @@ export function getLevelRequirement<T>(level: BuildingLevel, requirement?: Level
   if (requirement) {
     if (requirement[level]) return requirement[level];
     let res: T | undefined;
-    const levelNum = BuildingLevelsEnum[level] - 1
+    const levelNum = BuildingLevelsEnum[level]
     let highest = -1
 
     for (const key in requirement) {
@@ -43,8 +43,12 @@ export function buildingUpgradeEndDate(building: Building, info: BuildingInfo) {
   if (building.level < 4) {
     return building.date.getTime() + (info.constructionTime * 1000)
   }
-  return building.date.getTime() + (Math.round(info.buildTime * (Math.pow(building.level - 3, info.buildTimeMultiplier))) * 1000);
+  return building.date.getTime() + buildingUpgradeFormula(info, building.level) * 1000;
 }
+export function buildingUpgradeFormula(info: BuildingInfo, level: number) {
+  return Math.round(info.buildTime * (Math.pow(level - 3, info.buildTimeMultiplier)));
+}
+
 /** @internal @debug */
 export function checkBuildingUpgradeTimes(name: BuildingNames) {
   const info = buildingInfo[name]
@@ -54,7 +58,11 @@ export function checkBuildingUpgradeTimes(name: BuildingNames) {
 }
 // # PRODUCTION
 export function buildingProductionEndDate(building: Building, info: ProductionBuildingInfo) {
-  return building.date.getTime() + (Math.round(info.productionRate / (Math.pow(building.level - 3, info.productionRateMultiplier))) * 1000);
+  return building.date.getTime() + buildingProductionFormula(info, building.level) * 1000;
+}
+
+export function buildingProductionFormula(info: ProductionBuildingInfo, level: number) {
+  return Math.round(info.productionRate / (Math.pow(level - 3, info.productionRateMultiplier)));
 }
 
 /** @internal @debug */

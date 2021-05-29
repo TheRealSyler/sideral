@@ -122,27 +122,25 @@ export class Game {
 
   private buildingResourceCheck(info: BuildingInfo, building: Building, time: number, cell: MapCell) {
     if (info.canProduce) {
-      const requirements = info.productionResourceRequirements;
-      if (requirements) {
-      } else {
-        if (buildingProductionEndDate(building, info) < time) {
-          building.date = new Date();
-          const resReq = getLevelRequirement(convertBuildingLevel(building.level), info.productionResourceRequirements);
-          if (!resReq) {
-            if (cell.resourceAmount >= 1) {
-              cell.resourceAmount--;
-              this.state.resendListeners('selectedMapChunk');
-              this.state.setFunc(info.productionType, (v) => v + 1);
+      if (buildingProductionEndDate(building, info) < time) {
+        building.date = new Date();
+        const resReq = getLevelRequirement(convertBuildingLevel(building.level), info.productionResourceRequirements);
+        if (!resReq) {
+          if (cell.resourceAmount >= 1) {
+            cell.resourceAmount--;
+            this.state.resendListeners('selectedMapChunk');
+            this.state.setFunc(info.productionType, (v) => v + 1);
 
-            } else console.log('NO RESOURCES TODO implement warning or something');
-            return;
-          }
-          checkAndSubtractResources(this.state, resReq)
+          } else console.log('NO RESOURCES TODO implement warning or something');
+          return;
+        }
+        if (checkAndSubtractResources(this.state, resReq)) {
           this.state.resendListeners('selectedMapChunk');
           this.state.setFunc(info.productionType, (v) => v + 1);
+        } else console.log('NO RESOURCES TODO implement warning or something');
 
-        }
       }
+
     }
   }
 

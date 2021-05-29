@@ -1,6 +1,6 @@
 import { AchievementName, AchievementStack } from './achievements';
 import { MapCellName } from "./map";
-import { GameResources, ResourceStack } from "./resources";
+import { Resources, ResourceStack } from "./resources";
 
 export interface Building {
   name: BuildingNames,
@@ -41,7 +41,7 @@ export interface ProductionBuildingInfo extends BaseBuildingInfo {
   productionRateMultiplier: number;
   /** if specified it uses the resources otherwise the cell resources are used */
   productionResourceRequirements?: LevelRequirement<ResourceStack>;
-  productionType: keyof GameResources
+  productionType: keyof Resources
 }
 
 
@@ -50,8 +50,10 @@ interface NonProductionBuildingInfo extends BaseBuildingInfo {
 }
 
 export type BuildingInfo = NonProductionBuildingInfo | ProductionBuildingInfo
-
-export type BuildingNames = 'base' | 'house' | 'woodcutter' | 'bakery'
+export enum BuildingEnum {
+  'base', 'house', 'woodcutter', 'bakery'
+}
+export type BuildingNames = keyof typeof BuildingEnum
 
 export enum BuildingLevelsEnum {
   'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'
@@ -61,44 +63,47 @@ export type BuildingLevel = keyof typeof BuildingLevelsEnum
 
 export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
   base: {
-    buildTime: 4,
+    buildTime: 2,
     buildTimeMultiplier: 4.5,
-    constructionTime: 3,
-    constructionRequirements: [{ amount: 20, type: 'wood' }],
-    upgradeRequirements: { I: [{ amount: 20, type: 'wood' }, { amount: 10, type: 'stone' }], II: [{ amount: 40, type: 'wood' }, { amount: 10, type: 'stone' }] },
-    achievementUnlocks: { I: 'baseI', II: 'baseII', III: 'baseIII', IV: 'baseIV', V: 'baseV', VI: 'baseVI', VII: 'baseVII', VIII: 'baseVIII', IX: 'baseIX', X: 'baseX' }
+    constructionTime: 1,
+    constructionRequirements: [{ amount: 20, type: 'wood' }, { amount: 10, type: 'stone' }],
+    upgradeRequirements: { I: [{ amount: 40, type: 'wood' }, { amount: 20, type: 'stone' }], },
+    achievementUnlocks: { I: 'Base I', II: 'Base II', III: 'Base III', IV: 'Base IV', V: 'Base V', VI: 'Base VI', VII: 'Base VII', VIII: 'Base VIII', IX: 'Base IX', X: 'Base X' },
+    achievementRequirement: { I: 'Woodcutter I' }
   },
   house: {
     buildTime: 2,
     buildTimeMultiplier: 4.5,
     constructionTime: 10,
-    achievementRequirement: { I: 'baseII' },
-    constructionAchievements: 'baseI',
+    achievementRequirement: { I: 'Base II' },
+    constructionAchievements: 'Base I',
     constructionRequirements: [{ amount: 20, type: 'wood' }],
     upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] }
   },
   woodcutter: {
-    buildTime: 20,
+    buildTime: 3,
     buildTimeMultiplier: 2,
-    constructionTime: 6,
+    constructionTime: 2,
     constructionRequirements: [{ amount: 20, type: 'wood' }],
     upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] },
     canProduce: true,
     productionRate: 10,
     productionRateMultiplier: 0.75,
-    constructionAchievements: 'baseI',
-    achievementRequirement: { I: 'baseII', II: 'baseIII' },
+    constructionAchievements: 'Base I',
+    achievementRequirement: { I: 'Base II', II: 'Base III' },
+    achievementUnlocks: { I: 'Woodcutter I' },
     productionType: 'wood'
   },
   bakery: {
     buildTime: 60,
     buildTimeMultiplier: 4.5,
-    constructionTime: 10,
+    constructionTime: 2,
     canProduce: true,
-    productionRate: 100,
+    productionRate: 5,
     productionType: 'bread',
-    constructionAchievements: 'baseI',
-    achievementRequirement: { I: 'baseI' },
+    constructionAchievements: 'Base I',
+    achievementRequirement: { I: 'Base I' },
+    productionResourceRequirements: { I: [{ amount: 1, type: 'clay' }, { amount: 1, type: 'wood' }] },
     productionRateMultiplier: 0.75,
     constructionRequirements: [{ amount: 20, type: 'wood' }],
     upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] }

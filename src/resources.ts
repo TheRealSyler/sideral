@@ -1,22 +1,26 @@
 import { GameState, State } from './state';
 
-export interface GameResources {
-  stone: number,
-  wood: number,
-  clay: number,
-  bread: number,
+export enum ResourcesEnum {
+  wood,
+  clay,
+  stone,
+  bread
 }
 
-export const defaultResources: GameResources = {
+export type ResourceName = keyof typeof ResourcesEnum;
+export type Resources = { [key in ResourceName]: number }
+
+export const defaultResources: Resources = {
   clay: 10,
-  stone: 20,
-  wood: 80,
+  stone: 50,
+  wood: 100,
   bread: 20
 }
 
+
 export type ResourceStack = {
   amount: number;
-  type: keyof GameResources;
+  type: ResourceName;
 }[];
 
 
