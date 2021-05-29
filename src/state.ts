@@ -31,11 +31,7 @@ export class State<State extends { [key: string]: any }> {
   }
 }
 
-
-
-
 export interface GameState extends GameResources {
-
   selectedMapChunk: null | { cell: MapCell, x: number, y: number }
 }
 

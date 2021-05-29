@@ -1,5 +1,6 @@
 import bakeryTex from './assets/bakery.png'
 import house from './assets/house.png'
+import base from './assets/base.png'
 import { Building, BuildingNames } from './building';
 import { CanvasCache } from './canvasCache';
 import { MAP_CELL_SIZE } from './globalConstants';
@@ -7,6 +8,7 @@ import { TextureCache } from './textureCache';
 import { getTextureOffset } from "./utils";
 
 const textureCache = new TextureCache<BuildingNames>({
+  base: base,
   house: house,
   bakery: bakeryTex,
   woodcutter: bakeryTex,

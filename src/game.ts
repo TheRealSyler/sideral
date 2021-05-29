@@ -1,11 +1,13 @@
+import { addAchievement } from './achievements';
 import { renderAnimation } from './animation';
 import { Building, BuildingInfo, buildingInfo } from "./building";
-import { buildingProductionEndDate, buildingUpgradeEndDate } from "./buildingFunctions";
+import { buildingProductionEndDate, buildingUpgradeEndDate, convertBuildingLevel, getLevelRequirement } from "./buildingFunctions";
 import { CanvasCache } from "./canvasCache";
 import { MAP_CELL_SIZE, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT, MAP_PADDING, MAP_MOVE_FACTOR, ZOOM_SCALE_FACTOR, ZOOM_MAX_SCALE, ZOOM_MIN_SCALE } from "./globalConstants";
 import { Map, MapCell } from "./map"
 import { render, renderCellBuilding } from "./render";
-import { defaultResources } from "./resources";
+import { checkAndSubtractResources, defaultResources } from "./resources";
+import { Save } from './save';
 import { State, GameState } from "./state";
 import { fromNow } from './time';
 import { InitUI } from "./ui";
@@ -30,14 +32,17 @@ export class Game {
   getViewportWidth = () => window.innerWidth
   getMaxXPos = (scale: number) => this.getViewportWidth() - (this.mapSize * scale) - MAP_PADDING
   getMaxYPos = (scale: number) => this.getViewportHeight() - (this.mapSize * scale) - MAP_PADDING
-
+  gameSave: Save = {
+    achievements: {},
+    map: this.map
+  }
   state = new State<GameState>({
     ...defaultResources,
     selectedMapChunk: null
   })
 
   constructor(public map: Map, public mapWidth: number) {
-    InitUI(this.state, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT)
+    InitUI(this.state, this.gameSave, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT)
     document.body.appendChild(this.viewport.canvas)
     document.body.appendChild(this.miniMap.canvas)
     this.miniMap.canvas.className = 'minimap'
@@ -97,13 +102,17 @@ export class Game {
         building.level++;
         await renderCellBuilding(new DOMPoint(x, y), this.buildingTextureCanvas, building)
       }
-      if (progress > 1) {
+      if (progress >= 1) {
         building.isUpgrading = false;
+        building.date = new Date()
+        addAchievement(this.gameSave.achievements, getLevelRequirement('I', info.achievementUnlocks))
         this.state.resendListeners('selectedMapChunk')
       }
     } else if (remainingTime < time) {
       building.level++;
       building.isUpgrading = false;
+      building.date = new Date()
+      addAchievement(this.gameSave.achievements, getLevelRequirement(convertBuildingLevel(building.level), info.achievementUnlocks))
       await renderCellBuilding(new DOMPoint(x, y), this.buildingTextureCanvas, building)
       this.state.resendListeners('selectedMapChunk')
 
@@ -117,15 +126,20 @@ export class Game {
       if (requirements) {
       } else {
         if (buildingProductionEndDate(building, info) < time) {
-          building.date = new Date;
-          if (cell.resourceAmount >= 1) {
-            cell.resourceAmount--;
-            this.state.resendListeners('selectedMapChunk');
-            this.state.setFunc('bread', (v) => v + 1);
+          building.date = new Date();
+          const resReq = getLevelRequirement(convertBuildingLevel(building.level), info.productionResourceRequirements);
+          if (!resReq) {
+            if (cell.resourceAmount >= 1) {
+              cell.resourceAmount--;
+              this.state.resendListeners('selectedMapChunk');
+              this.state.setFunc(info.productionType, (v) => v + 1);
 
-          } else
-            console.log('NO RESOURCES TODO implement warning or something');
-
+            } else console.log('NO RESOURCES TODO implement warning or something');
+            return;
+          }
+          checkAndSubtractResources(this.state, resReq)
+          this.state.resendListeners('selectedMapChunk');
+          this.state.setFunc(info.productionType, (v) => v + 1);
 
         }
       }

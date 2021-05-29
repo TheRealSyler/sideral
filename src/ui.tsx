@@ -1,17 +1,19 @@
-import { MapCellTexturePos } from "./map";
+import { MapCell, MapCellTexturePos } from "./map";
 import { State, GameState } from "./state";
 import { toPx } from "./utils";
 import { Fragment, h } from 'dom-chef'
-import { defaultResources, GameResources } from "./resources";
-import { buildingInfo, BuildingNames, buildings, } from "./building";
+import { defaultResources, GameResources, checkAndSubtractResources } from "./resources";
+import { Building, buildingInfo, BuildingNames, cellBuildings, } from "./building";
 import { fromNow } from "./time";
 import { Game } from "./game";
 import { UiEvents } from "./uiEvents";
-import { buildingUpgradeEndDate, buildingProductionEndDate, displayBuildingLevel, newBuilding } from "./buildingFunctions";
+import { buildingUpgradeEndDate, buildingProductionEndDate, displayBuildingLevel, newBuilding, getLevelRequirement, convertBuildingLevel } from "./buildingFunctions";
+import { Save } from './save';
+import { checkAchievementRequirement } from './achievements';
 
-export function InitUI(state: State<GameState>, topHeight: number, bottomHeight: number) {
+export function InitUI(state: State<GameState>, gameSave: Save, topHeight: number, bottomHeight: number) {
   topUI(state, topHeight);
-  bottomUI(state, bottomHeight,);
+  bottomUI(state, gameSave, bottomHeight);
 }
 
 function topUI(state: State<GameState>, topHeight: number) {
@@ -32,11 +34,12 @@ function topUI(state: State<GameState>, topHeight: number) {
   document.body.appendChild(top);
 }
 
-function bottomUI(state: State<GameState>, bottomHeight: number,) {
+function bottomUI(state: State<GameState>, gameSave: Save, bottomHeight: number,) {
+  document.body.style.setProperty('--bottom-height', `${bottomHeight}px`)
   const uiEvents = new UiEvents()
   const cellName = <span></span>;
   const mapCellResources = <span></span>;
-  const cellBuilding = <span></span>;
+  const cellBuilding = <span className="building-cards"></span>;
 
   const upgradeTimeLeftEvent = 'upgrade-time';
   state.addListener('selectedMapChunk', (v) => {
@@ -52,48 +55,31 @@ function bottomUI(state: State<GameState>, bottomHeight: number,) {
       const building = cell.building
       if (building) {
         const upgradeTime = <span></span>
+        const prodTime = <span></span>
         const info = buildingInfo[building.name]
-        // TODO this might cause issues and a clean up
+
         if (building.isUpgrading) {
           const updateUpgradeTime = () => {
-            if (!building.isUpgrading) {
-              uiEvents.remove(upgradeTimeLeftEvent);
-              return;
-            }
             upgradeTime.textContent = fromNow((buildingUpgradeEndDate(building, info)));
           };
           uiEvents.add(upgradeTimeLeftEvent, updateUpgradeTime);
           updateUpgradeTime()
         } else if (info.canProduce) {
           const updateProductionTime = () => {
-
-            upgradeTime.textContent = fromNow((buildingProductionEndDate(building, info)));
+            prodTime.textContent = fromNow((buildingProductionEndDate(building, info)));
           };
           uiEvents.add(upgradeTimeLeftEvent, updateProductionTime);
           updateProductionTime()
 
         }
 
-        cellBuilding.appendChild(<Fragment>
-          <span>Building: {building.name}  </span><br />
-          <span>Level: {displayBuildingLevel(building.level)}</span><br />
-          <span>Time: {upgradeTime}</span><br />
-          {!building.isUpgrading && <button onClick={() => {
-            building.date = new Date()
-            building.isUpgrading = true
-            state.resendListeners('selectedMapChunk')
-          }}>Upgrade</button>}
-
-        </Fragment>)
+        cellBuilding.appendChild(buildingCard(building.name, gameSave, building.level < 3 ? 3 : building.level, state, cell, upgradeTime, prodTime))
       } else {
-        const availableBuildings = buildings[cell.type]
+        const availableBuildings = cellBuildings[cell.type]
         if (availableBuildings) {
           for (let i = 0; i < availableBuildings.length; i++) {
             const buildingName = availableBuildings[i];
-            cellBuilding.appendChild(<button onClick={() => {
-              cell.building = newBuilding(buildingName)
-              state.resendListeners('selectedMapChunk')
-            }}>{buildingName} </button>)
+            cellBuilding.appendChild(buildingCard(buildingName, gameSave, 3, state, cell))
           }
         }
       }
@@ -102,18 +88,84 @@ function bottomUI(state: State<GameState>, bottomHeight: number,) {
   });
 
   const bottom = <div className="ui-bottom" style={{ height: bottomHeight }}>
-    <div className="ui-map-chunk-info">
-      <ul>
-        <li> {cellName}</li>
-        <li>Resource: {mapCellResources}</li>
+    <div >
+      {cellName}
+      <br />
+      ({mapCellResources})
 
-
-      </ul>
     </div>
-    {cellBuilding}
+    <div>
+
+      {cellBuilding}
+    </div>
 
   </div>;
 
   document.body.appendChild(bottom);
 }
 
+function buildingCard(
+  building: BuildingNames,
+  gameSave: Save,
+  level: number,
+  state: State<GameState>,
+  cell: MapCell,
+  upgradeTime?: HTMLSpanElement,
+  prodTime?: HTMLSpanElement
+) {
+  const isUpgrading = upgradeTime?.textContent;
+  const isAlreadyBuilt = level > 3;
+  const info = buildingInfo[building]
+  const levelName = convertBuildingLevel(level);
+
+  const req = info.achievementRequirement;
+
+  let canBuild = true
+  if (isAlreadyBuilt && req) {
+    canBuild = checkAchievementRequirement(gameSave.achievements, req[levelName]);
+  } else {
+    canBuild = checkAchievementRequirement(gameSave.achievements, info.constructionAchievements);
+  }
+
+  const reqResources = isAlreadyBuilt ? getLevelRequirement(levelName, info.upgradeRequirements) : info.constructionRequirements;
+
+  const buildResources = []
+  if (reqResources && !isUpgrading) {
+    for (let i = 0; i < reqResources.length; i++) {
+      const resource = reqResources[i];
+      buildResources.push(<div >{resource.type}: {resource.amount}</div>)
+    }
+  }
+  return <div className="building-card">
+    <span>{prodTime} {building} {levelName}</span>
+    <div className="building-card-middle">
+      <div className="building-card-icon">ICON</div>
+      <span className="building-card-resources">
+        {buildResources}
+      </span>
+    </div>
+
+    <button
+      className="button"
+      disabled={!canBuild}
+      onClick={() => {
+        if (!reqResources) {
+          console.error('This should not happen, UI - build building card, (ctrl f this, obviously)')
+          return
+        }
+
+        if (canBuild && checkAndSubtractResources(state, reqResources)) {
+          if (cell.building) {
+            cell.building.isUpgrading = true
+            cell.building.date = new Date()
+          } else {
+            cell.building = newBuilding(building);
+          }
+          state.resendListeners('selectedMapChunk');
+        }
+      }}
+    >
+      {isUpgrading ? upgradeTime : isAlreadyBuilt ? 'Upgrade' : 'Build'}
+    </button>
+  </div>
+}

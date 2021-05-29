@@ -1,4 +1,4 @@
-import { Building, BuildingInfo, BuildingNames, buildingInfo, ProductionBuildingInfo } from "./building";
+import { Building, BuildingInfo, BuildingNames, buildingInfo, ProductionBuildingInfo, BuildingLevel, BuildingLevelsEnum, LevelRequirement } from "./building";
 import { fromNow } from "./time";
 
 export function displayBuildingLevel(level: number) {
@@ -13,7 +13,7 @@ export function displayBuildingLevel(level: number) {
     case 15:
       return 'Destroyed'
     default:
-      return (level - 3).toString()
+      return convertBuildingLevel(level)
   }
 }
 
@@ -25,6 +25,32 @@ export function newBuilding(type: BuildingNames): Building {
     name: type,
   }
 }
+
+export function getLevelRequirement<T>(level: BuildingLevel, requirement?: LevelRequirement<T>) {
+  if (requirement) {
+    if (requirement[level]) return requirement[level];
+    let res: T | undefined;
+    const levelNum = BuildingLevelsEnum[level] - 1
+    let highest = -1
+
+    for (const key in requirement) {
+      if (Object.prototype.hasOwnProperty.call(requirement, key)) {
+        const keyNum = BuildingLevelsEnum[key as keyof LevelRequirement<T>];
+        if (levelNum > keyNum && keyNum >= highest) {
+          highest = keyNum
+          res = requirement[key as keyof LevelRequirement<T>]!;
+        }
+      }
+    }
+    return res
+
+  }
+}
+
+export function convertBuildingLevel(level: number) {
+  return BuildingLevelsEnum[level - 4] as BuildingLevel
+}
+
 
 // # UPGRADE
 export function buildingUpgradeEndDate(building: Building, info: BuildingInfo) {

@@ -1,12 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap')
 
-html
+body
   --bg: #121418
   --top-bar-bg: #222428
   --bottom-bar-bg: #222428
+  --card-bg: #323438
+  --button-bg: #424448
+  --button-disabled: #323438
+  --button-hover: #46484b
   --text: #eee
-
-body
+  --text-disabled: #aaa
+  --bottom-height: 0px
   background: var(--bg)
   color: var(--text)
   font-family: Roboto, monospace
@@ -32,16 +36,59 @@ body
     position: fixed
     z-index: 1
     bottom: 0
-    right: 0
+    right: var(--bottom-height)
     left: 0
 
     border-top: 1px solid #0af
     box-sizing: border-box
     background: var( --bottom-bar-bg)
-
+    overflow: auto
+    display: flex
+    gap: 2rem
+    padding: 1rem
 .minimap
   position: fixed
   z-index: 2
   bottom: 0
   right: 0
   background: var(--bg)
+
+.building-cards
+  display: flex
+  gap: 10px
+.building-card
+  padding: 1rem
+  background: var(--card-bg)
+  border-radius: 5px
+  text-align: center
+  display: flex
+  flex-direction: column
+  text-transform: capitalize
+  gap: 10px
+  min-width: 150px
+  &-resources
+    display: flex
+    flex-direction: column
+
+  &-icon
+    width: 50px
+    height: 50px
+    background: #000
+  &-middle
+    display: flex
+    gap: 10px
+
+.button
+  border: none
+
+  background: var(--button-bg)
+  border-radius: 5px
+  color: var(--text)
+  padding: 0.5rem 1rem
+  cursor: pointer
+  &:hover
+    background: var(--button-hover)
+  &:disabled
+    cursor: default
+    color: var(--text-disabled)
+    background: var(--button-disabled)
