@@ -45,18 +45,20 @@ function bottomUI(state: State<GameState>, gameSave: Save, bottomHeight: number,
   const cellBuilding = <div className="building-cards"> </div>;
 
   const upgradeTimeLeftEvent = 'upgrade-time';
-  state.addListener('selectedMapChunk', (v) => {
+  state.addListener('selectedMapChunk', (selectedPos) => {
     uiEvents.remove(upgradeTimeLeftEvent)
-    if (v) {
-      const { cell } = v;
-      cellIcon.innerHTML = ''
+    cellIcon.innerHTML = ''
+    cellBuilding.innerHTML = ''
+    cellName.textContent = ''
+    cellResourcesAmount.textContent = ''
+    if (selectedPos) {
+      const { cell } = selectedPos;
       cellIcon.appendChild(getCellIcon(cell.type))
       cellName.textContent = cell.type;
       cellResourcesAmount.textContent = cell.resourceAmount === -1 ?
         '' :
         `(${cell.resourceAmount})` || 'Depleted';
 
-      cellBuilding.innerHTML = ''
       const building = cell.building
       if (building) {
         const upgradeTime = <span></span>

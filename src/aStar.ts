@@ -1,3 +1,4 @@
+import { Position } from './interfaces';
 import { Map } from './map';
 import { floor } from './utils';
 
@@ -12,7 +13,6 @@ export interface AStarNode {
   neighbors: AStarNode[];
 }
 
-
 /** Adapted from https://github.com/OneLoneCoder/videos/blob/master/OneLoneCoder_PathFinding_AStar.cpp */
 export function FindAStar(startNode: AStarNode, endNode: AStarNode) {
 
@@ -23,7 +23,7 @@ export function FindAStar(startNode: AStarNode, endNode: AStarNode) {
   const nodesToTest: AStarNode[] = [];
   nodesToTest.push(startNode);
 
-  while (!(nodesToTest.length === 0) && currentNode != endNode) {
+  while (!(nodesToTest.length === 0) && currentNode !== endNode) {
 
     nodesToTest.sort((a, b) => a.globalGoal - b.globalGoal);
 
@@ -54,7 +54,30 @@ export function FindAStar(startNode: AStarNode, endNode: AStarNode) {
     }
   }
 
-  return currentNode;
+
+  return currentNode
+}
+
+export function findPath(startNode: AStarNode, endNode: AStarNode) {
+  const end = FindAStar(startNode, endNode)
+
+  if (end !== endNode) return false
+
+  const path: Position[] = []
+  let node = end
+  while (node.parent) {
+    path.push({ x: node.x, y: node.y })
+    node = node.parent
+  }
+  return path
+}
+
+
+export function restoreAStarNode(node: AStarNode) {
+  node.globalGoal = Infinity
+  node.localGoal = Infinity
+  node.wasVisited = false
+  node.parent = null
 }
 
 function aStarDistance(a: AStarNode, b: AStarNode) {
@@ -65,7 +88,7 @@ function aStarHeuristic(a: AStarNode, b: AStarNode) {
   return aStarDistance(a, b);
 };
 
-export function MapToAStarNodes(map: Map, width: number, diagonal = false) {
+export function MapToAStarNodes(map: Map, width: number,) {
   const nodes: AStarNode[] = []
 
   const size = width * width
@@ -85,18 +108,18 @@ export function MapToAStarNodes(map: Map, width: number, diagonal = false) {
     }
     nodes[i] = node;
 
-    if (diagonal) {
-      const upperLeft = nodes[i - width - 1]
-      if (upperLeft) {
-        upperLeft.neighbors.push(node)
-        node.neighbors.push(upperLeft)
-      }
-      const upperRight = nodes[i - width + 1]
-      if (upperRight) {
-        upperRight.neighbors.push(node)
-        node.neighbors.push(upperRight)
-      }
+
+    const upperLeft = nodes[i - width - 1]
+    if (upperLeft) {
+      upperLeft.neighbors.push(node)
+      node.neighbors.push(upperLeft)
     }
+    const upperRight = nodes[i - width + 1]
+    if (upperRight) {
+      upperRight.neighbors.push(node)
+      node.neighbors.push(upperRight)
+    }
+
     const left = nodes[i - 1]
     if (left) {
       left.neighbors.push(node)

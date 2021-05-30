@@ -3,13 +3,13 @@ import { Game } from './game';
 import { generateMap } from './mapGenerator';
 import { MAP_CELLS_PER_ROW } from './globalConstants';
 import { CanvasViewer } from './canvasViewer';
-import { FindAStar, MapToAStarNodes } from './aStar';
+import { FindAStar, findPath, MapToAStarNodes } from './aStar';
 (async () => {
   document.addEventListener('contextmenu', event => event.preventDefault());
   let a = false
   a = true
 
-  const seed = 0
+  const seed = 1
   if (a) {
     // const t = performance.now()
     const m = generateMap(MAP_CELLS_PER_ROW, seed)
@@ -50,7 +50,11 @@ import { FindAStar, MapToAStarNodes } from './aStar';
     const end = nodes[3412];
     end.isObstacle = false
     const g = FindAStar(start, end)
+    setInterval(() => {
+      FindAStar(start, end)
+    }, 200)
     console.log(g === end)
+
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       if (node.wasVisited) {
@@ -73,7 +77,7 @@ import { FindAStar, MapToAStarNodes } from './aStar';
     for (let i = 0; i < nodes.length; i++) {
 
       const node = nodes[i];
-      viewer.ctx.fillText(`${i}`, node.x * viewer.scale, node.y * viewer.scale + 20)
+      // viewer.ctx.fillText(`${i}`, node.x * viewer.scale, node.y * viewer.scale + 20)
       // viewer.ctx.fillText(`S: ${node.x} ${node.y}`, node.x * viewer.scale, node.y * viewer.scale + 40)
       // viewer.ctx.fillText(`P: ${node.parent && node.parent.x} ${node.parent && node.parent.y}`, node.x * viewer.scale, node.y * viewer.scale + 60)
 

@@ -1,9 +1,11 @@
 import { addAchievement } from './achievements';
 import { renderAnimation } from './animation';
+import { findPath, MapToAStarNodes, restoreAStarNode } from './aStar';
 import { Building, BuildingInfo, buildingInfo } from "./building";
 import { buildingProductionEndDate, buildingUpgradeEndDate, convertBuildingLevel, getLevelRequirement } from "./buildingFunctions";
 import { CanvasCache } from "./canvasCache";
 import { MAP_CELL_SIZE, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT, MAP_PADDING, MAP_MOVE_FACTOR, ZOOM_SCALE_FACTOR, ZOOM_MAX_SCALE, ZOOM_MIN_SCALE } from "./globalConstants";
+import { Position } from './interfaces';
 import { Map, MapCell } from "./map"
 import { render, renderCellBuilding } from "./render";
 import { checkAndSubtractResources, defaultResources } from "./resources";
@@ -11,7 +13,8 @@ import { Save } from './save';
 import { State, GameState } from "./state";
 import { fromNow } from './time';
 import { InitUI } from "./ui";
-import { clamp, floor, toPx } from "./utils";
+import { Unit } from './unit';
+import { angleTo, clamp, distance, floor, radToDeg, toPx } from "./utils";
 
 
 export class Game {
@@ -20,7 +23,7 @@ export class Game {
   miniMap = new CanvasCache(UI_BOTTOM_HEIGHT, 'Mini Map Canvas')
   lastX = 0
   lastY = 0;
-  mapSize = this.mapWidth * MAP_CELL_SIZE
+  mapSize = this.mapCellsPerRow * MAP_CELL_SIZE
   mapTextureCanvas = new CanvasCache(this.mapSize, 'Map Texture Canvas')
   buildingTextureCanvas = new CanvasCache(this.mapSize, 'Building Texture Canvas')
 
@@ -36,12 +39,18 @@ export class Game {
     achievements: {},
     map: this.map
   }
+  aStarNodes = MapToAStarNodes(this.map, this.mapCellsPerRow)
   state = new State<GameState>({
     ...defaultResources,
     selectedMapChunk: null
   })
+  units: Unit[] = [
+    // new Unit(this.mapSize / 2, this.mapSize / 2), 
+    // new Unit(this.mapSize / 2, this.mapSize / 2 + 50, 3)
+  ]
+  mode: 'unit' | 'building' = 'unit'
 
-  constructor(public map: Map, public mapWidth: number) {
+  constructor(public map: Map, public mapCellsPerRow: number) {
     InitUI(this.state, this.gameSave, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT)
     document.body.appendChild(this.viewport.canvas)
     document.body.appendChild(this.miniMap.canvas)
@@ -50,12 +59,12 @@ export class Game {
     this.miniMap.ctx.lineWidth = 1.2
     window.addEventListener('resize', this.resize);
 
-    this.viewport.canvas.addEventListener('DOMMouseScroll', this.handleScroll, false);
-    this.viewport.canvas.addEventListener('mousewheel', this.handleScroll, false);
-    this.viewport.canvas.addEventListener('mousedown', this.mousedown, false);
-    this.viewport.canvas.addEventListener('mousemove', this.mousemove, false);
-    this.viewport.canvas.addEventListener('mouseup', this.mouseup, false);
-    this.viewport.canvas.addEventListener('mouseleave', this.mouseleave, false);
+    this.viewport.canvas.addEventListener('DOMMouseScroll', this.handleScroll);
+    this.viewport.canvas.addEventListener('mousewheel', this.handleScroll);
+    this.viewport.canvas.addEventListener('mousedown', this.mousedown);
+    this.viewport.canvas.addEventListener('mousemove', this.mousemove);
+    this.viewport.canvas.addEventListener('mouseup', this.mouseup);
+    this.viewport.canvas.addEventListener('mouseleave', this.mouseleave);
 
     this.start()
 
@@ -66,7 +75,7 @@ export class Game {
     this.addCtxTransformTacking(this.viewport.ctx)
     this.resize()
 
-    await render(this.mapTextureCanvas, this.buildingTextureCanvas, this.map, this.mapWidth,)
+    await render(this.mapTextureCanvas, this.buildingTextureCanvas, this.map, this.mapCellsPerRow,)
 
     this.viewport.ctx.translate((-this.mapSize + this.viewport.canvas.width) / 2, (-this.mapSize + this.viewport.canvas.height) / 2)
 
@@ -94,8 +103,8 @@ export class Game {
 
   private async buildingUpgradeCheck(building: Building, info: BuildingInfo, time: number, i: number) {
     const remainingTime = buildingUpgradeEndDate(building, info);
-    const x = (i % this.mapWidth)
-    const y = floor((i / this.mapWidth))
+    const x = (i % this.mapCellsPerRow)
+    const y = floor((i / this.mapCellsPerRow))
     if (building.level < 4) {
       const progress = 1 - ((remainingTime - Date.now()) / (info.constructionTime * 1000));
       if (progress > (building.level + 1) * 0.25) {
@@ -106,6 +115,7 @@ export class Game {
         building.isUpgrading = false;
         building.date = Date.now()
         addAchievement(this.gameSave.achievements, getLevelRequirement('I', info.achievementUnlocks))
+        this.aStarNodes = MapToAStarNodes(this.map, this.mapCellsPerRow)
         this.state.resendListeners('selectedMapChunk')
       }
     } else if (remainingTime < time) {
@@ -149,59 +159,47 @@ export class Game {
     this.viewport.ctx.drawImage(this.mapTextureCanvas.canvas, 0, 0);
     this.viewport.ctx.drawImage(this.buildingTextureCanvas.canvas, 0, 0);
 
-
-
     const { x: xStart, y: yStart } = this.viewport.ctx.transformedPoint(0, 0);
     const { x: xEnd, y: yEnd } = this.viewport.ctx.transformedPoint(this.viewport.canvas.width, this.viewport.canvas.height);
     this.drawMinimap(xStart, yStart, xEnd, yEnd);
 
     await this.drawAnimations(delta, xStart, yStart, xEnd, yEnd);
 
-    // TODO improve this mess
-    if (this.showHover) {
-      const { x, y } = this.viewport.ctx.transformedPoint(this.lastX, this.lastY)
-      const x2 = floor(x / MAP_CELL_SIZE) * MAP_CELL_SIZE
-      const y2 = floor(y / MAP_CELL_SIZE) * MAP_CELL_SIZE
-      this.viewport.ctx.beginPath();
-      this.viewport.ctx.strokeStyle = '#000'
-      this.viewport.ctx.moveTo(x2, y2);
-      this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
-      this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
-      this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
-      this.viewport.ctx.lineTo(x2, y2);
-      this.viewport.ctx.stroke();
-
+    for (let i = 0; i < this.units.length; i++) {
+      const unit = this.units[i];
+      unit.draw(this.viewport.ctx)
     }
-    const selectedPos = this.state.get('selectedMapChunk')
-    if (selectedPos) {
-      const x2 = selectedPos.x * MAP_CELL_SIZE
-      const y2 = selectedPos.y * MAP_CELL_SIZE
-      this.viewport.ctx.beginPath();
-      this.viewport.ctx.strokeStyle = '#f00'
-      this.viewport.ctx.moveTo(x2, y2);
-      this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
-      this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
-      this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
-      this.viewport.ctx.lineTo(x2, y2);
-      this.viewport.ctx.stroke();
+
+    if (this.mode === 'building') {
+      if (this.showHover) {
+        const { x, y } = this.viewport.ctx.transformedPoint(this.lastX, this.lastY)
+        const x2 = floor(x / MAP_CELL_SIZE) * MAP_CELL_SIZE
+        const y2 = floor(y / MAP_CELL_SIZE) * MAP_CELL_SIZE
+        this.viewport.ctx.beginPath();
+        this.viewport.ctx.strokeStyle = '#000'
+        this.viewport.ctx.moveTo(x2, y2);
+        this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
+        this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
+        this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
+        this.viewport.ctx.lineTo(x2, y2);
+        this.viewport.ctx.stroke();
+
+      }
+
+      const selectedPos = this.state.get('selectedMapChunk')
+      if (selectedPos) {
+        const x2 = selectedPos.x * MAP_CELL_SIZE
+        const y2 = selectedPos.y * MAP_CELL_SIZE
+        this.viewport.ctx.beginPath();
+        this.viewport.ctx.strokeStyle = '#f00'
+        this.viewport.ctx.moveTo(x2, y2);
+        this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
+        this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
+        this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
+        this.viewport.ctx.lineTo(x2, y2);
+        this.viewport.ctx.stroke();
+      }
     }
-    // draw map island bounding box
-
-    // {
-    //   const x = (this.map.indices.startIndex % this.mapWidth) * MAP_CELL_SIZE
-    //   const y = floor(this.map.indices.startIndex / this.mapWidth) * MAP_CELL_SIZE
-    //   const x2 = (this.map.indices.endIndex % this.mapWidth) * MAP_CELL_SIZE + MAP_CELL_SIZE
-    //   const y2 = floor(this.map.indices.endIndex / this.mapWidth) * MAP_CELL_SIZE + MAP_CELL_SIZE
-
-    //   this.viewport.ctx.strokeStyle = '#f00'
-    //   this.viewport.ctx.beginPath();
-    //   this.viewport.ctx.moveTo(x, y);
-    //   this.viewport.ctx.lineTo(x2, y);
-    //   this.viewport.ctx.lineTo(x2, y2);
-    //   this.viewport.ctx.lineTo(x, y2);
-    //   this.viewport.ctx.lineTo(x, y);
-    //   this.viewport.ctx.stroke();
-    // }
 
     requestAnimationFrame(this.draw)
   }
@@ -225,16 +223,16 @@ export class Game {
   }
 
   private async drawAnimations(delta: number, xStart: number, yStart: number, xEnd: number, yEnd: number) {
-    const xStartCell = clamp(floor(xStart / MAP_CELL_SIZE), this.mapWidth - 1, 0);
-    const yStartCell = clamp(floor(yStart / MAP_CELL_SIZE), this.mapWidth - 1, 0);
-    const xEndCell = clamp(floor(xEnd / MAP_CELL_SIZE), this.mapWidth - 1, 0);
-    const yEndCell = clamp(floor(yEnd / MAP_CELL_SIZE), this.mapWidth - 1, 0);
+    const xStartCell = clamp(floor(xStart / MAP_CELL_SIZE), this.mapCellsPerRow - 1, 0);
+    const yStartCell = clamp(floor(yStart / MAP_CELL_SIZE), this.mapCellsPerRow - 1, 0);
+    const xEndCell = clamp(floor(xEnd / MAP_CELL_SIZE), this.mapCellsPerRow - 1, 0);
+    const yEndCell = clamp(floor(yEnd / MAP_CELL_SIZE), this.mapCellsPerRow - 1, 0);
 
     this.viewport.ctx.fillStyle = "white";
     this.viewport.ctx.font = '10px sans-serif'
     for (let x = xStartCell; x <= xEndCell; x++) {
       for (let y = yStartCell; y <= yEndCell; y++) {
-        const i = x + this.mapWidth * y;
+        const i = x + this.mapCellsPerRow * y;
         const x2 = x * MAP_CELL_SIZE
         const y2 = y * MAP_CELL_SIZE
         const { building } = this.map.cells[i]
@@ -282,30 +280,80 @@ export class Game {
     this.viewport.ctx.setDomMatrix(new DOMMatrix())
   }
 
-  private mousedown = (evt: any) => {
-    //@ts-ignore
-    document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
-    this.lastX = evt.offsetX || (evt.pageX - this.viewport.canvas.offsetLeft);
-    this.lastY = evt.offsetY || (evt.pageY - this.viewport.canvas.offsetTop);
+  private mousedown = (e: MouseEvent) => {
+    const x = e.offsetX || (e.pageX - this.viewport.canvas.offsetLeft);
+    const y = e.offsetY || (e.pageY - this.viewport.canvas.offsetTop);
+    if (e.button === 2) {
+      const { x: x2, y: y2 } = this.viewport.ctx.transformedPoint(x, y)
+      let movedUnit = false
+      for (let i = 0; i < this.units.length; i++) {
+        const unit = this.units[i];
+        if (unit.selected) {
+          const endIndex = floor(x2 / MAP_CELL_SIZE) + this.mapCellsPerRow * floor(y2 / MAP_CELL_SIZE);
+          if (!this.aStarNodes[endIndex].isObstacle) {
+            const startIndex = floor(unit.x / MAP_CELL_SIZE) + this.mapCellsPerRow * floor(unit.y / MAP_CELL_SIZE);
+            const path = findPath(this.aStarNodes[startIndex], this.aStarNodes[endIndex])
+            if (path) {
+              const firstTarget = path.pop()
+              if (firstTarget) {
+                unit.target.x = firstTarget.x * MAP_CELL_SIZE + MAP_CELL_SIZE / 2
+                unit.target.y = firstTarget.y * MAP_CELL_SIZE + MAP_CELL_SIZE / 2
+                unit.path = path
+              }
+              unit.endTarget.x = x2
+              unit.endTarget.y = y2
+            }
+            movedUnit = true
+            for (let i = 0; i < this.aStarNodes.length; i++) {
+              restoreAStarNode(this.aStarNodes[i])
+            }
+          }
+        }
+      }
+      if (movedUnit) {
+        this.mode = 'unit'
+        this.state.set('selectedMapChunk', null)
+      }
 
-    this.canDrag = true
+    } else {
+      //@ts-ignore
+      document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+
+      this.canDrag = true
+      this.lastX = x
+      this.lastY = y
+    }
   }
   private mouseleave = () => {
     this.showHover = false
   }
   private mouseup = (e: MouseEvent) => {
-
-    if (!this.dragCursorLock) {
-
+    if (!this.dragCursorLock && e.button === 0) {
       const transform = this.viewport.ctx.getTransform()
-      const x = Math.round((e.offsetX - transform.e) / transform.a)
-      const y = Math.round((e.offsetY - transform.f) / transform.d)
+      const x = floor((e.offsetX - transform.e) / transform.a)
+      const y = floor((e.offsetY - transform.f) / transform.d)
       const x2 = floor(x / MAP_CELL_SIZE)
       const y2 = floor(y / MAP_CELL_SIZE)
-      if (x >= 0 && x < this.mapSize && y >= 0 && y < this.mapSize) {
-        this.state.set('selectedMapChunk', { cell: this.map.cells[x2 + this.mapWidth * y2], x: x2, y: y2 })
+      let selectUnit = false
+      for (let i = 0; i < this.units.length; i++) {
+        const unit = this.units[i];
+        const d = distance(x, y, unit.x, unit.y)
+        if (d < 20) {
+          selectUnit = true
+          unit.selected = true
+        } else {
+          unit.selected = false
+        }
       }
-
+      if (selectUnit) {
+        this.mode = 'unit'
+        this.state.set('selectedMapChunk', null)
+      } else {
+        this.mode = 'building'
+        if (x >= 0 && x < this.mapSize && y >= 0 && y < this.mapSize) {
+          this.state.set('selectedMapChunk', { cell: this.map.cells[x2 + this.mapCellsPerRow * y2], x: x2, y: y2 })
+        }
+      }
     }
 
     this.canDrag = false;
@@ -367,10 +415,6 @@ export class Game {
     if (delta) this.zoom(delta);
     return evt.preventDefault() && false;
   };
-
-
-
-
 
   private addCtxTransformTacking(ctx: CanvasRenderingContext2D) {
 
