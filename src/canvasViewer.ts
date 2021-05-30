@@ -5,13 +5,13 @@ export class CanvasViewer {
   ctx!: CanvasRenderingContext2D
   static viewers = 0
   static container = document.createElement('div')
-  constructor(public size: number, public scale = 1) {
+  constructor(public size: number, public scale = 1, public cssScale = 1) {
 
-    this.canvas.width = size
-    this.canvas.height = size
+    this.canvas.width = size * scale
+    this.canvas.height = size * scale
 
-    this.canvas.style.width = `${size * scale}px`
-    this.canvas.style.height = `${size * scale}px`
+    this.canvas.style.width = `${size * scale * cssScale}px`
+    this.canvas.style.height = `${size * scale * cssScale}px`
     this.canvas.style.imageRendering = 'crisp-edges'
     const ctx = this.canvas.getContext('2d')
     if (ctx) {
@@ -37,15 +37,30 @@ export class CanvasViewer {
   drawNumArray(arr: number[], colorMultiplier = 255) {
     for (let j = 0; j < this.size * this.size; j++) {
 
-      const x = (j % this.size);
-      const y = floor((j / this.size));
+      const x = (j % this.size) * this.scale;
+      const y = floor((j / this.size)) * this.scale;
 
       const color = arr[j] * colorMultiplier
 
       this.ctx.fillStyle = this.rgbToHex(color, color, color);
 
-      this.ctx.fillRect(x, y, 1, 1)
+      this.ctx.fillRect(x, y, this.scale, this.scale)
 
+    }
+  }
+  drawRGBNumArray(arr: [number, number, number][], colorMultiplier = 255) {
+    for (let j = 0; j < this.size * this.size; j++) {
+
+      const x = (j % this.size) * this.scale;
+      const y = floor((j / this.size)) * this.scale;
+
+      const color = arr[j][0] * colorMultiplier
+      const color2 = arr[j][1] * colorMultiplier
+      const color3 = arr[j][2] * colorMultiplier
+
+      this.ctx.fillStyle = this.rgbToHex(color, color2, color3);
+
+      this.ctx.fillRect(x, y, this.scale, this.scale)
     }
   }
 

@@ -51,11 +51,12 @@ export function radToDeg(n: number) {
 }
 
 export function interpolate(a0: number, a1: number, w: number) {
-
   return (a1 - a0) * w + a0;
 }
+export function interpolateLinear(a: number, b: number, n: number) {
+  return (1 - n) * a + n * b;
+}
 export function interpolateCubic(a0: number, a1: number, w: number) {
-
   return (a1 - a0) * (3.0 - w * 2.0) * w * w + a0;
 }
 export function interpolateSmootherStep(a0: number, a1: number, w: number) {
