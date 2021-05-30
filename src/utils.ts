@@ -21,7 +21,7 @@ export async function loadTexture(src: string): Promise<HTMLImageElement> {
 
 export function getTextureOffset(index: number, sizePerCell: number, cellsPerRow: number) {
   const x = (index % cellsPerRow) * sizePerCell
-  const y = Math.floor((index / cellsPerRow)) * sizePerCell
+  const y = floor((index / cellsPerRow)) * sizePerCell
   return [x, y]
 }
 
@@ -62,3 +62,6 @@ export function interpolateSmootherStep(a0: number, a1: number, w: number) {
   return (a1 - a0) * ((w * (w * 6.0 - 15.0) + 10.0) * w * w * w) + a0;
 }
 
+export function floor(number: number) {
+  return number | 0
+}

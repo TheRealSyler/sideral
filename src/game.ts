@@ -11,7 +11,7 @@ import { Save } from './save';
 import { State, GameState } from "./state";
 import { fromNow } from './time';
 import { InitUI } from "./ui";
-import { clamp, toPx } from "./utils";
+import { clamp, floor, toPx } from "./utils";
 
 
 export class Game {
@@ -95,7 +95,7 @@ export class Game {
   private async buildingUpgradeCheck(building: Building, info: BuildingInfo, time: number, i: number) {
     const remainingTime = buildingUpgradeEndDate(building, info);
     const x = (i % this.mapWidth)
-    const y = Math.floor((i / this.mapWidth))
+    const y = floor((i / this.mapWidth))
     if (building.level < 4) {
       const progress = 1 - ((remainingTime - Date.now()) / (info.constructionTime * 1000));
       if (progress > (building.level + 1) * 0.25) {
@@ -104,14 +104,14 @@ export class Game {
       }
       if (progress >= 1) {
         building.isUpgrading = false;
-        building.date = new Date()
+        building.date = Date.now()
         addAchievement(this.gameSave.achievements, getLevelRequirement('I', info.achievementUnlocks))
         this.state.resendListeners('selectedMapChunk')
       }
     } else if (remainingTime < time) {
       building.level++;
       building.isUpgrading = false;
-      building.date = new Date()
+      building.date = Date.now()
       addAchievement(this.gameSave.achievements, getLevelRequirement(convertBuildingLevel(building.level), info.achievementUnlocks))
       await renderCellBuilding(new DOMPoint(x, y), this.buildingTextureCanvas, building)
       this.state.resendListeners('selectedMapChunk')
@@ -123,7 +123,7 @@ export class Game {
   private buildingResourceCheck(info: BuildingInfo, building: Building, time: number, cell: MapCell) {
     if (info.canProduce) {
       if (buildingProductionEndDate(building, info) < time) {
-        building.date = new Date();
+        building.date = Date.now()
         const resReq = getLevelRequirement(convertBuildingLevel(building.level), info.productionResourceRequirements);
         if (!resReq) {
           if (cell.resourceAmount >= 1) {
@@ -144,8 +144,6 @@ export class Game {
     }
   }
 
-
-
   private draw = async (delta: number) => {
 
     this.viewport.ctx.drawImage(this.mapTextureCanvas.canvas, 0, 0);
@@ -162,8 +160,8 @@ export class Game {
     // TODO improve this mess
     if (this.showHover) {
       const { x, y } = this.viewport.ctx.transformedPoint(this.lastX, this.lastY)
-      const x2 = Math.floor(x / MAP_CELL_SIZE) * MAP_CELL_SIZE
-      const y2 = Math.floor(y / MAP_CELL_SIZE) * MAP_CELL_SIZE
+      const x2 = floor(x / MAP_CELL_SIZE) * MAP_CELL_SIZE
+      const y2 = floor(y / MAP_CELL_SIZE) * MAP_CELL_SIZE
       this.viewport.ctx.beginPath();
       this.viewport.ctx.strokeStyle = '#000'
       this.viewport.ctx.moveTo(x2, y2);
@@ -191,9 +189,9 @@ export class Game {
 
     // {
     //   const x = (this.map.indices.startIndex % this.mapWidth) * MAP_CELL_SIZE
-    //   const y = Math.floor(this.map.indices.startIndex / this.mapWidth) * MAP_CELL_SIZE
+    //   const y = floor(this.map.indices.startIndex / this.mapWidth) * MAP_CELL_SIZE
     //   const x2 = (this.map.indices.endIndex % this.mapWidth) * MAP_CELL_SIZE + MAP_CELL_SIZE
-    //   const y2 = Math.floor(this.map.indices.endIndex / this.mapWidth) * MAP_CELL_SIZE + MAP_CELL_SIZE
+    //   const y2 = floor(this.map.indices.endIndex / this.mapWidth) * MAP_CELL_SIZE + MAP_CELL_SIZE
 
     //   this.viewport.ctx.strokeStyle = '#f00'
     //   this.viewport.ctx.beginPath();
@@ -227,10 +225,10 @@ export class Game {
   }
 
   private async drawAnimations(delta: number, xStart: number, yStart: number, xEnd: number, yEnd: number) {
-    const xStartCell = clamp(Math.floor(xStart / MAP_CELL_SIZE), this.mapWidth - 1, 0);
-    const yStartCell = clamp(Math.floor(yStart / MAP_CELL_SIZE), this.mapWidth - 1, 0);
-    const xEndCell = clamp(Math.floor(xEnd / MAP_CELL_SIZE), this.mapWidth - 1, 0);
-    const yEndCell = clamp(Math.floor(yEnd / MAP_CELL_SIZE), this.mapWidth - 1, 0);
+    const xStartCell = clamp(floor(xStart / MAP_CELL_SIZE), this.mapWidth - 1, 0);
+    const yStartCell = clamp(floor(yStart / MAP_CELL_SIZE), this.mapWidth - 1, 0);
+    const xEndCell = clamp(floor(xEnd / MAP_CELL_SIZE), this.mapWidth - 1, 0);
+    const yEndCell = clamp(floor(yEnd / MAP_CELL_SIZE), this.mapWidth - 1, 0);
 
     this.viewport.ctx.fillStyle = "white";
     this.viewport.ctx.font = '10px sans-serif'
@@ -302,8 +300,8 @@ export class Game {
       const transform = this.viewport.ctx.getTransform()
       const x = Math.round((e.offsetX - transform.e) / transform.a)
       const y = Math.round((e.offsetY - transform.f) / transform.d)
-      const x2 = Math.floor(x / MAP_CELL_SIZE)
-      const y2 = Math.floor(y / MAP_CELL_SIZE)
+      const x2 = floor(x / MAP_CELL_SIZE)
+      const y2 = floor(y / MAP_CELL_SIZE)
       if (x >= 0 && x < this.mapSize && y >= 0 && y < this.mapSize) {
         this.state.set('selectedMapChunk', { cell: this.map.cells[x2 + this.mapWidth * y2], x: x2, y: y2 })
       }

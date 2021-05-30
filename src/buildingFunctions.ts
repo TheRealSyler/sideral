@@ -5,7 +5,7 @@ import { fromNow } from "./time";
 
 export function newBuilding(type: BuildingNames): Building {
   return {
-    date: new Date,
+    date: Date.now(),
     isUpgrading: true,
     level: -1,
     name: type,
@@ -41,9 +41,9 @@ export function convertBuildingLevel(level: number) {
 // # UPGRADE
 export function buildingUpgradeEndDate(building: Building, info: BuildingInfo) {
   if (building.level < 4) {
-    return building.date.getTime() + (info.constructionTime * 1000)
+    return building.date + (info.constructionTime * 1000)
   }
-  return building.date.getTime() + buildingUpgradeFormula(info, building.level) * 1000;
+  return building.date + buildingUpgradeFormula(info, building.level) * 1000;
 }
 export function buildingUpgradeFormula(info: BuildingInfo, level: number) {
   return Math.round(info.buildTime * (Math.pow(level - 3, info.buildTimeMultiplier)));
@@ -53,12 +53,12 @@ export function buildingUpgradeFormula(info: BuildingInfo, level: number) {
 export function checkBuildingUpgradeTimes(name: BuildingNames) {
   const info = buildingInfo[name]
   for (let i = 3; i < 14; i++) {
-    console.log(fromNow(buildingUpgradeEndDate({ level: i, date: new Date() } as Building, info)))
+    console.log(fromNow(buildingUpgradeEndDate({ level: i, date: Date.now() } as Building, info)))
   }
 }
 // # PRODUCTION
 export function buildingProductionEndDate(building: Building, info: ProductionBuildingInfo) {
-  return building.date.getTime() + buildingProductionFormula(info, building.level) * 1000;
+  return building.date + buildingProductionFormula(info, building.level) * 1000;
 }
 
 export function buildingProductionFormula(info: ProductionBuildingInfo, level: number) {
@@ -69,6 +69,6 @@ export function buildingProductionFormula(info: ProductionBuildingInfo, level: n
 export function checkBuildingProductionTimes(name: BuildingNames) {
   const info = buildingInfo[name]
   for (let i = 4; i < 14; i++) {
-    console.log(fromNow(buildingProductionEndDate({ level: i, date: new Date() } as Building, info as any)))
+    console.log(fromNow(buildingProductionEndDate({ level: i, date: Date.now() } as Building, info as any)))
   }
 }

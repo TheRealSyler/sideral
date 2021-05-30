@@ -1,5 +1,5 @@
 import { Map, MapCell, MapCellName } from './map';
-import { degToRad } from './utils';
+import { degToRad, floor } from './utils';
 import random from 'seedrandom'
 import { islandMaskGen, forestMaskGen, oreMaskGen } from './mapMasks';
 
@@ -46,7 +46,7 @@ export function generateMap(width: number, seed: number) {
 }
 
 function randomRotation(seed: number, i: number) {
-  return degToRad(Math.floor(random('rotation' + seed + i)() * 4) * 90);
+  return degToRad(floor(random('rotation' + seed + i)() * 4) * 90);
 }
 
 function getResourceAmount(type: MapCellName, i: number) {
@@ -99,7 +99,7 @@ function getLandType(oreMask: number[], forestMask: number[], i: number): MapCel
       case 1:
         return 'stone';
       case 0.5:
-        return oreTypes[Math.floor(random('oreType' + i)() * oreTypes.length)]
+        return oreTypes[floor(random('oreType' + i)() * oreTypes.length)]
     }
     return 'gras';
   } else if (forestMask[i]) {

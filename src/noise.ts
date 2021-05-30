@@ -1,6 +1,7 @@
 //copied from github.com/WesleyClements/asm-noise
 
 import random from './random';
+import { floor } from './utils'
 
 export function Perlin(options?: { seed?: number, octaves?: number; lacunarity?: number, persistence?: number }) {
 
@@ -16,7 +17,6 @@ export function Perlin(options?: { seed?: number, octaves?: number; lacunarity?:
   };
   const setRandomSeed = (value: any) => (random.seed = value)
   const heap = new ArrayBuffer(0x10000);
-  var floor = Math.floor;
 
   var nextU8 = random.nextUint8;
 

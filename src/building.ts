@@ -6,7 +6,7 @@ export interface Building {
   name: BuildingNames,
   level: number,
   /** started upgrading or extracting a resource */
-  date: Date // TODO think of a  better name.? maybe
+  date: number // TODO think of a  better name.? maybe
   isUpgrading: boolean;
 }
 

@@ -1,7 +1,7 @@
 import { Perlin } from './noise'
 import random from 'seedrandom'
 import { Map } from './map';
-import { distance, distanceToEllipse, map, clamp, degToRad } from './utils'
+import { distance, distanceToEllipse, map, clamp, degToRad, floor } from './utils'
 
 
 export function islandMaskGen(seed: number, width: number) {
@@ -28,7 +28,7 @@ export function islandMaskGen(seed: number, width: number) {
 
   for (let i = 0; i < mapSize; i++) {
     const x = (i % width);
-    const y = Math.floor((i / width));
+    const y = floor((i / width));
     const dist = distanceToEllipse(x, y, (width / 2) - 0.5, (width / 2) - 0.5, o.x, o.y) / width
 
     const n = noise(x, y)
@@ -65,7 +65,7 @@ export function forestMaskGen(seed: number, width: number) {
 
   for (let i = 0; i < mapSize; i++) {
     const x = (i % width);
-    const y = Math.floor((i / width));
+    const y = floor((i / width));
     const n = noise(x, y)
 
     const treeThreshold = 0.6
@@ -96,11 +96,11 @@ export function oreMaskGen(seed: number, width: number, island: number[]) {
   const resetIndex = (r: number) => {
     i = 0
     while (island[i] !== 1) {
-      i = Math.floor(random('getIndex' + r)() * mapSize)
+      i = floor(random('getIndex' + r)() * mapSize)
       r++
     }
     x = (i % width);
-    y = Math.floor((i / width));
+    y = floor((i / width));
   }
   resetIndex(0)
 
@@ -117,7 +117,7 @@ export function oreMaskGen(seed: number, width: number, island: number[]) {
     const spot = oreSpot(seed, spotSize);
     for (let i = 0; i < spot.length; i++) {
       const spotX = (i % spotSize);
-      const spotY = Math.floor((i / spotSize));
+      const spotY = floor((i / spotSize));
       const newIndex = (x + spotX) + width * (y + spotY);
 
       out[newIndex] = clamp((out[newIndex] + spot[i]), 1, 0)
@@ -147,7 +147,7 @@ function oreSpot(seed: number, width: number) {
 
   for (let i = 0; i < mapSize; i++) {
     const x = (i % width);
-    const y = Math.floor((i / width));
+    const y = floor((i / width));
     const dist = distance(x, y, (width / 2) - 0.5, (width / 2) - 0.5) / width
 
     const n = noise(x, y)
@@ -171,8 +171,8 @@ function getAdjustedNoise(mapSize: number, width: number, noise2D: (x: number, y
   let min = 1;
   let max = 0;
   for (let i = 0; i < mapSize; i++) {
-    const x = Math.floor(i % width);
-    const y = Math.floor((i / width));
+    const x = floor(i % width);
+    const y = floor((i / width));
     const n = noise2D(x, y);
     if (n > max)
       max = n;

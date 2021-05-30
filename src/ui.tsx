@@ -207,7 +207,7 @@ function buildingCard(
         if (canBuild && checkAndSubtractResources(state, reqResources)) {
           if (cell.building) {
             cell.building.isUpgrading = true
-            cell.building.date = new Date()
+            cell.building.date = Date.now()
           } else {
             cell.building = newBuilding(building);
           }

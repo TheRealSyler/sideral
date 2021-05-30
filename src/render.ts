@@ -1,4 +1,4 @@
-import { getTextureOffset } from "./utils";
+import { floor, getTextureOffset } from "./utils";
 import { Map, MapCellTexturePos } from './map'
 import terrain from './assets/terrains.png';
 import { renderBuilding } from "./buildingRender";
@@ -19,7 +19,7 @@ export async function render(mapCanvas: CanvasCache, buildingCanvas: CanvasCache
   for (let i = 0; i < map.cells.length; i++) {
     const cell = map.cells[i];
     const rawX = (i % width)
-    const rawY = Math.floor((i / width))
+    const rawY = floor((i / width))
     const x = rawX * MAP_CELL_SIZE
     const y = rawY * MAP_CELL_SIZE
 

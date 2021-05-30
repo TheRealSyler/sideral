@@ -1,4 +1,4 @@
-import { clamp } from './utils'
+import { clamp, floor } from './utils'
 
 export class CanvasViewer {
   canvas = document.createElement('canvas')
@@ -38,7 +38,7 @@ export class CanvasViewer {
     for (let j = 0; j < this.size * this.size; j++) {
 
       const x = (j % this.size);
-      const y = Math.floor((j / this.size));
+      const y = floor((j / this.size));
 
       const color = arr[j] * colorMultiplier
 
