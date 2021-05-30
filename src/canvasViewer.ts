@@ -35,12 +35,12 @@ export class CanvasViewer {
     CanvasViewer.viewers++
   }
   drawNumArray(arr: number[], colorMultiplier = 255) {
-    for (let j = 0; j < this.size * this.size; j++) {
+    for (let i = 0; i < this.size * this.size; i++) {
 
-      const x = (j % this.size) * this.scale;
-      const y = floor((j / this.size)) * this.scale;
+      const x = (i % this.size) * this.scale;
+      const y = floor((i / this.size)) * this.scale;
 
-      const color = arr[j] * colorMultiplier
+      const color = arr[i] * colorMultiplier
 
       this.ctx.fillStyle = this.rgbToHex(color, color, color);
 
@@ -49,14 +49,14 @@ export class CanvasViewer {
     }
   }
   drawRGBNumArray(arr: [number, number, number][], colorMultiplier = 255) {
-    for (let j = 0; j < this.size * this.size; j++) {
+    for (let i = 0; i < this.size * this.size; i++) {
 
-      const x = (j % this.size) * this.scale;
-      const y = floor((j / this.size)) * this.scale;
+      const x = (i % this.size) * this.scale;
+      const y = floor((i / this.size)) * this.scale;
 
-      const color = arr[j][0] * colorMultiplier
-      const color2 = arr[j][1] * colorMultiplier
-      const color3 = arr[j][2] * colorMultiplier
+      const color = arr[i][0] * colorMultiplier
+      const color2 = arr[i][1] * colorMultiplier
+      const color3 = arr[i][2] * colorMultiplier
 
       this.ctx.fillStyle = this.rgbToHex(color, color2, color3);
 
