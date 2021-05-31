@@ -3,13 +3,13 @@ import { Game } from './game';
 import { generateMap } from './mapGenerator';
 import { MAP_CELLS_PER_ROW } from './globalConstants';
 import { CanvasViewer } from './canvasViewer';
-import { FindAStar, findPath, MapToAStarNodes } from './aStar';
+import { FindAStar, MapToAStarNodes } from './aStar';
 (async () => {
   document.addEventListener('contextmenu', event => event.preventDefault());
   let a = false
   a = true
 
-  const seed = 1
+  const seed = 0
   if (a) {
     // const t = performance.now()
     const m = generateMap(MAP_CELLS_PER_ROW, seed)

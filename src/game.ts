@@ -1,84 +1,66 @@
 import { addAchievement } from './achievements';
 import { renderAnimation } from './animation';
-import { findPath, MapToAStarNodes, restoreAStarNode } from './aStar';
+import { MapToAStarNodes } from './aStar';
 import { Building, BuildingInfo, buildingInfo } from "./building";
 import { buildingProductionEndDate, buildingUpgradeEndDate, convertBuildingLevel, getLevelRequirement } from "./buildingFunctions";
-import { CanvasCache } from "./canvasCache";
-import { MAP_CELL_SIZE, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT, MAP_PADDING, MAP_MOVE_FACTOR, ZOOM_SCALE_FACTOR, ZOOM_MAX_SCALE, ZOOM_MIN_SCALE } from "./globalConstants";
-import { Position } from './interfaces';
+import { MAP_CELL_SIZE, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT } from "./globalConstants";
 import { Map, MapCell } from "./map"
-import { render, renderCellBuilding } from "./render";
+import { Minimap } from './minimap';
+import { renderCellBuilding } from "./render";
 import { checkAndSubtractResources, defaultResources } from "./resources";
 import { Save } from './save';
 import { State, GameState } from "./state";
 import { fromNow } from './time';
 import { InitUI } from "./ui";
 import { Unit } from './unit';
-import { angleTo, clamp, distance, floor, radToDeg, toPx } from "./utils";
+import { clamp, floor } from "./utils";
+import { Viewport } from './viewport';
 
+
+export type GameMode = 'unit' | 'building';
 
 export class Game {
-
-  viewport = new CanvasCache(0, 'Viewport Canvas')
-  miniMap = new CanvasCache(UI_BOTTOM_HEIGHT, 'Mini Map Canvas')
-  lastX = 0
-  lastY = 0;
   mapSize = this.mapCellsPerRow * MAP_CELL_SIZE
-  mapTextureCanvas = new CanvasCache(this.mapSize, 'Map Texture Canvas')
-  buildingTextureCanvas = new CanvasCache(this.mapSize, 'Building Texture Canvas')
+  camera = {
+    speed: 18,
+    move: {
+      up: false,
+      down: false,
+      left: false,
+      right: false
+    }
+  }
 
-  canDrag = false
-  dragCursorLock = false
-  showHover = false
-
-  getViewportHeight = () => window.innerHeight - (UI_TOP_HEIGHT + UI_BOTTOM_HEIGHT)
-  getViewportWidth = () => window.innerWidth
-  getMaxXPos = (scale: number) => this.getViewportWidth() - (this.mapSize * scale) - MAP_PADDING
-  getMaxYPos = (scale: number) => this.getViewportHeight() - (this.mapSize * scale) - MAP_PADDING
+  state = new State<GameState>({
+    ...defaultResources,
+    selectedMapChunk: null
+  })
   gameSave: Save = {
     achievements: {},
     map: this.map
   }
   aStarNodes = MapToAStarNodes(this.map, this.mapCellsPerRow)
-  state = new State<GameState>({
-    ...defaultResources,
-    selectedMapChunk: null
-  })
+
+  private readonly unitSpawnRemoveThisLater = floor(this.mapCellsPerRow / 2) * MAP_CELL_SIZE + MAP_CELL_SIZE / 2;
+
   units: Unit[] = [
-    // new Unit(this.mapSize / 2, this.mapSize / 2), 
+    new Unit(this.unitSpawnRemoveThisLater, this.unitSpawnRemoveThisLater),
     // new Unit(this.mapSize / 2, this.mapSize / 2 + 50, 3)
   ]
-  mode: 'unit' | 'building' = 'unit'
-
+  mode: GameMode = 'unit'
+  viewport = new Viewport(this)
+  miniMap = new Minimap(this)
   constructor(public map: Map, public mapCellsPerRow: number) {
     InitUI(this.state, this.gameSave, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT)
-    document.body.appendChild(this.viewport.canvas)
-    document.body.appendChild(this.miniMap.canvas)
-    this.miniMap.canvas.className = 'minimap'
-    this.miniMap.ctx.strokeStyle = '#000'
-    this.miniMap.ctx.lineWidth = 1.2
-    window.addEventListener('resize', this.resize);
 
-    this.viewport.canvas.addEventListener('DOMMouseScroll', this.handleScroll);
-    this.viewport.canvas.addEventListener('mousewheel', this.handleScroll);
-    this.viewport.canvas.addEventListener('mousedown', this.mousedown);
-    this.viewport.canvas.addEventListener('mousemove', this.mousemove);
-    this.viewport.canvas.addEventListener('mouseup', this.mouseup);
-    this.viewport.canvas.addEventListener('mouseleave', this.mouseleave);
+    window.addEventListener('keydown', this.keydown);
+    window.addEventListener('keyup', this.keyup);
 
     this.start()
-
   }
 
   private async start() {
-    // don't change the order of the function calls.
-    this.addCtxTransformTacking(this.viewport.ctx)
-    this.resize()
-
-    await render(this.mapTextureCanvas, this.buildingTextureCanvas, this.map, this.mapCellsPerRow,)
-
-    this.viewport.ctx.translate((-this.mapSize + this.viewport.canvas.width) / 2, (-this.mapSize + this.viewport.canvas.height) / 2)
-
+    await this.viewport.start()
     this.draw(0)
     setInterval(this.logicLoop, 250)
   }
@@ -98,7 +80,6 @@ export class Game {
         }
       }
     }
-
   }
 
   private async buildingUpgradeCheck(building: Building, info: BuildingInfo, time: number, i: number) {
@@ -109,7 +90,7 @@ export class Game {
       const progress = 1 - ((remainingTime - Date.now()) / (info.constructionTime * 1000));
       if (progress > (building.level + 1) * 0.25) {
         building.level++;
-        await renderCellBuilding(new DOMPoint(x, y), this.buildingTextureCanvas, building)
+        await renderCellBuilding(new DOMPoint(x, y), this.viewport.buildingTextureCanvas, building)
       }
       if (progress >= 1) {
         building.isUpgrading = false;
@@ -123,11 +104,9 @@ export class Game {
       building.isUpgrading = false;
       building.date = Date.now()
       addAchievement(this.gameSave.achievements, getLevelRequirement(convertBuildingLevel(building.level), info.achievementUnlocks))
-      await renderCellBuilding(new DOMPoint(x, y), this.buildingTextureCanvas, building)
+      await renderCellBuilding(new DOMPoint(x, y), this.viewport.buildingTextureCanvas, building)
       this.state.resendListeners('selectedMapChunk')
-
     }
-
   }
 
   private buildingResourceCheck(info: BuildingInfo, building: Building, time: number, cell: MapCell) {
@@ -148,78 +127,25 @@ export class Game {
           this.state.resendListeners('selectedMapChunk');
           this.state.setFunc(info.productionType, (v) => v + 1);
         } else console.log('NO RESOURCES TODO implement warning or something');
-
       }
-
     }
   }
 
   private draw = async (delta: number) => {
 
-    this.viewport.ctx.drawImage(this.mapTextureCanvas.canvas, 0, 0);
-    this.viewport.ctx.drawImage(this.buildingTextureCanvas.canvas, 0, 0);
+    this.viewport.draw(delta, this.mode)
 
     const { x: xStart, y: yStart } = this.viewport.ctx.transformedPoint(0, 0);
     const { x: xEnd, y: yEnd } = this.viewport.ctx.transformedPoint(this.viewport.canvas.width, this.viewport.canvas.height);
-    this.drawMinimap(xStart, yStart, xEnd, yEnd);
+    this.miniMap.draw(xStart, yStart, xEnd, yEnd);
 
     await this.drawAnimations(delta, xStart, yStart, xEnd, yEnd);
 
     for (let i = 0; i < this.units.length; i++) {
-      const unit = this.units[i];
-      unit.draw(this.viewport.ctx)
-    }
-
-    if (this.mode === 'building') {
-      if (this.showHover) {
-        const { x, y } = this.viewport.ctx.transformedPoint(this.lastX, this.lastY)
-        const x2 = floor(x / MAP_CELL_SIZE) * MAP_CELL_SIZE
-        const y2 = floor(y / MAP_CELL_SIZE) * MAP_CELL_SIZE
-        this.viewport.ctx.beginPath();
-        this.viewport.ctx.strokeStyle = '#000'
-        this.viewport.ctx.moveTo(x2, y2);
-        this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
-        this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
-        this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
-        this.viewport.ctx.lineTo(x2, y2);
-        this.viewport.ctx.stroke();
-
-      }
-
-      const selectedPos = this.state.get('selectedMapChunk')
-      if (selectedPos) {
-        const x2 = selectedPos.x * MAP_CELL_SIZE
-        const y2 = selectedPos.y * MAP_CELL_SIZE
-        this.viewport.ctx.beginPath();
-        this.viewport.ctx.strokeStyle = '#f00'
-        this.viewport.ctx.moveTo(x2, y2);
-        this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
-        this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
-        this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
-        this.viewport.ctx.lineTo(x2, y2);
-        this.viewport.ctx.stroke();
-      }
+      this.units[i].draw(this.viewport.ctx)
     }
 
     requestAnimationFrame(this.draw)
-  }
-
-  private drawMinimap(xStart: number, yStart: number, xEnd: number, yEnd: number) {
-    this.miniMap.ctx.drawImage(this.mapTextureCanvas.canvas, 0, 0, UI_BOTTOM_HEIGHT, UI_BOTTOM_HEIGHT)
-    this.miniMap.ctx.drawImage(this.buildingTextureCanvas.canvas, 0, 0, UI_BOTTOM_HEIGHT, UI_BOTTOM_HEIGHT)
-
-    const x2 = (xStart / this.mapSize) * UI_BOTTOM_HEIGHT;
-    const y2 = (yStart / this.mapSize) * UI_BOTTOM_HEIGHT;
-    const x3 = (xEnd / this.mapSize) * UI_BOTTOM_HEIGHT;
-    const y3 = (yEnd / this.mapSize) * UI_BOTTOM_HEIGHT;
-
-    this.miniMap.ctx.beginPath();
-    this.miniMap.ctx.moveTo(x2, y2);
-    this.miniMap.ctx.lineTo(x3, y2);
-    this.miniMap.ctx.lineTo(x3, y3);
-    this.miniMap.ctx.lineTo(x2, y3);
-    this.miniMap.ctx.lineTo(x2, y2);
-    this.miniMap.ctx.stroke();
   }
 
   private async drawAnimations(delta: number, xStart: number, yStart: number, xEnd: number, yEnd: number) {
@@ -243,25 +169,7 @@ export class Game {
             x2 + 2,
             y2 + 10, MAP_CELL_SIZE - 4)
         }
-        // const cell = this.map[i]
-        // switch (cell.type) {
-        //   case 'water':
-        //   case 'water coast':
-        //   case 'water coast 2':
-        //   case 'water coast 3':
-        //   case 'water coast 4':
 
-        //     this.viewport.ctx.strokeStyle = '#f0f'
-        //     this.viewport.ctx.beginPath();
-        //     this.viewport.ctx.moveTo(x2, y2);
-        //     this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2);
-        //     this.viewport.ctx.lineTo(x2 + MAP_CELL_SIZE, y2 + MAP_CELL_SIZE);
-        //     this.viewport.ctx.lineTo(x2, y2 + MAP_CELL_SIZE);
-        //     this.viewport.ctx.lineTo(x2, y2);
-        //     this.viewport.ctx.stroke();
-        //     break;
-
-        // }
         // this.viewport.ctx.fillText(`x:${x} y: ${y} i: ${i}`,
         //   x2 + 2,
         //   y2 + 10, MAP_CELL_SIZE - 4)
@@ -271,226 +179,39 @@ export class Game {
     }
   }
 
-  private resize = () => {
-    this.viewport.canvas.className = 'map';
-    this.viewport.canvas.width = this.getViewportWidth();
-    this.viewport.canvas.height = this.getViewportHeight();
-    this.viewport.canvas.style.top = toPx(UI_TOP_HEIGHT);
-    this.viewport.canvas.style.bottom = toPx(UI_BOTTOM_HEIGHT);
-    this.viewport.ctx.setDomMatrix(new DOMMatrix())
-  }
-
-  private mousedown = (e: MouseEvent) => {
-    const x = e.offsetX || (e.pageX - this.viewport.canvas.offsetLeft);
-    const y = e.offsetY || (e.pageY - this.viewport.canvas.offsetTop);
-    if (e.button === 2) {
-      const { x: x2, y: y2 } = this.viewport.ctx.transformedPoint(x, y)
-      let movedUnit = false
-      for (let i = 0; i < this.units.length; i++) {
-        const unit = this.units[i];
-        if (unit.selected) {
-          const endIndex = floor(x2 / MAP_CELL_SIZE) + this.mapCellsPerRow * floor(y2 / MAP_CELL_SIZE);
-          if (!this.aStarNodes[endIndex].isObstacle) {
-            const startIndex = floor(unit.x / MAP_CELL_SIZE) + this.mapCellsPerRow * floor(unit.y / MAP_CELL_SIZE);
-            const path = findPath(this.aStarNodes[startIndex], this.aStarNodes[endIndex])
-            if (path) {
-              const firstTarget = path.pop()
-              if (firstTarget) {
-                unit.target.x = firstTarget.x * MAP_CELL_SIZE + MAP_CELL_SIZE / 2
-                unit.target.y = firstTarget.y * MAP_CELL_SIZE + MAP_CELL_SIZE / 2
-                unit.path = path
-              }
-              unit.endTarget.x = x2
-              unit.endTarget.y = y2
-            }
-            movedUnit = true
-            for (let i = 0; i < this.aStarNodes.length; i++) {
-              restoreAStarNode(this.aStarNodes[i])
-            }
-          }
-        }
-      }
-      if (movedUnit) {
-        this.mode = 'unit'
-        this.state.set('selectedMapChunk', null)
-      }
-
-    } else {
-      //@ts-ignore
-      document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
-
-      this.canDrag = true
-      this.lastX = x
-      this.lastY = y
-    }
-  }
-  private mouseleave = () => {
-    this.showHover = false
-  }
-  private mouseup = (e: MouseEvent) => {
-    if (!this.dragCursorLock && e.button === 0) {
-      const transform = this.viewport.ctx.getTransform()
-      const x = floor((e.offsetX - transform.e) / transform.a)
-      const y = floor((e.offsetY - transform.f) / transform.d)
-      const x2 = floor(x / MAP_CELL_SIZE)
-      const y2 = floor(y / MAP_CELL_SIZE)
-      let selectUnit = false
-      for (let i = 0; i < this.units.length; i++) {
-        const unit = this.units[i];
-        const d = distance(x, y, unit.x, unit.y)
-        if (d < 20) {
-          selectUnit = true
-          unit.selected = true
-        } else {
-          unit.selected = false
-        }
-      }
-      if (selectUnit) {
-        this.mode = 'unit'
-        this.state.set('selectedMapChunk', null)
-      } else {
-        this.mode = 'building'
-        if (x >= 0 && x < this.mapSize && y >= 0 && y < this.mapSize) {
-          this.state.set('selectedMapChunk', { cell: this.map.cells[x2 + this.mapCellsPerRow * y2], x: x2, y: y2 })
-        }
-      }
-    }
-
-    this.canDrag = false;
-    this.dragCursorLock = false
-    this.showHover = true
-    document.exitPointerLock()
-  }
-
-  private mousemove = (evt: MouseEvent) => {
-
-    this.lastX = evt.offsetX || (evt.pageX - this.viewport.canvas.offsetLeft);
-    this.lastY = evt.offsetY || (evt.pageY - this.viewport.canvas.offsetTop);
-
-    if (this.canDrag) {
-      if (!this.dragCursorLock) {
-        this.viewport.canvas.requestPointerLock()
-        this.dragCursorLock = true
-        this.showHover = false
-      }
-      const transform = this.viewport.ctx.getTransform()
-      const { a, b, c, d, e, f } = transform
-      let x = clamp(e + evt.movementX * MAP_MOVE_FACTOR, MAP_PADDING, this.getMaxXPos(a))
-      let y = clamp(f + evt.movementY * MAP_MOVE_FACTOR, MAP_PADDING, this.getMaxYPos(a))
-
-      this.viewport.ctx.setTransform(a, b, c, d, x, y)
-    } else {
-      this.showHover = true
-    }
-
-  }
-
-  private zoom = (clicks: number) => {
-    // TODO refine zoom function, right now this function only approximates the zoom limits.
-    const transform = this.viewport.ctx.getTransform()
-    const scale = transform.a
-
-    const factor = Math.pow(ZOOM_SCALE_FACTOR, clicks);
-    if (scale < ZOOM_MAX_SCALE && factor > 1 || scale > ZOOM_MIN_SCALE && factor < 1) {
-
-      const pt = this.viewport.ctx.transformedPoint(this.lastX, this.lastY);
-
-      this.viewport.ctx.translate(pt.x, pt.y);
-
-      this.viewport.ctx.scale(factor, factor);
-
-      this.viewport.ctx.translate(-pt.x, -pt.y);
-      // clamp position
-      const { a, b, c, d, e, f } = this.viewport.ctx.getTransform()
-      let x = clamp(e, MAP_PADDING, this.getMaxXPos(a))
-      let y = clamp(f, MAP_PADDING, this.getMaxYPos(a))
-      this.viewport.ctx.setTransform(a, b, c, d, x, y)
-
-    }
-
-  }
-
-  private handleScroll = (evt: any) => {
-    const delta = evt.wheelDelta ? evt.wheelDelta / 40 : evt.detail ? -evt.detail : 0;
-    if (delta) this.zoom(delta);
-    return evt.preventDefault() && false;
-  };
-
-  private addCtxTransformTacking(ctx: CanvasRenderingContext2D) {
-
-    let domMatrix = new DOMMatrix()
-    ctx.setDomMatrix = function (matrix) { domMatrix = matrix }
-    ctx.getTransform = function () { return domMatrix; };
-
-    const savedTransforms: any[] = [];
-    const save = ctx.save;
-    ctx.save = function () {
-      savedTransforms.push(domMatrix.translate(0, 0));
-      return save.call(ctx);
-    };
-
-    const restore = ctx.restore;
-    ctx.restore = function () {
-      domMatrix = savedTransforms.pop();
-      return restore.call(ctx);
-    };
-
-    const scale = ctx.scale;
-    ctx.scale = function (sx, sy) {
-      domMatrix = domMatrix.multiply(scaleNonUniform(sx, sy))
-
-      return scale.call(ctx, sx, sy);
-    };
-
-    const rotate = ctx.rotate;
-    ctx.rotate = function (radians) {
-      domMatrix = domMatrix.rotate(radians * 180 / Math.PI);
-      return rotate.call(ctx, radians);
-    };
-
-    const translate = ctx.translate;
-    ctx.translate = function (dx, dy) {
-      domMatrix = domMatrix.translate(dx, dy);
-      return translate.call(ctx, dx, dy);
-    };
-
-    const transform = ctx.transform;
-    ctx.transform = function (a, b, c, d, e, f) {
-      const m2 = new DOMMatrix()
-      m2.a = a; m2.b = b; m2.c = c; m2.d = d; m2.e = e; m2.f = f;
-      domMatrix = domMatrix.multiply(m2);
-      return transform.call(ctx, a, b, c, d, e, f);
-    };
-
-    const setTransform = ctx.setTransform;
-    // @ts-ignore
-    ctx.setTransform = function (a: number, b: number, c: number, d: number, e: number, f: number) {
-      domMatrix.a = a;
-      domMatrix.b = b;
-      domMatrix.c = c;
-      domMatrix.d = d;
-      domMatrix.e = e;
-      domMatrix.f = f;
-
-      // @ts-ignore
-      return setTransform.call(ctx, a, b, c, d, e, f);
-    };
-
-
-    const pt = new DOMPoint();
-
-    ctx.transformedPoint = (x: number, y: number) => {
-      pt.x = x; pt.y = y;
-      return pt.matrixTransform(domMatrix.inverse());
+  keydown = (e: KeyboardEvent) => {
+    switch (e.key.toUpperCase()) {
+      case 'W':
+        this.camera.move.up = true
+        break;
+      case 'S':
+        this.camera.move.down = true
+        break;
+      case 'A':
+        this.camera.move.left = true
+        break;
+      case 'D':
+        this.camera.move.right = true
+        break;
     }
   }
 
-}
+  keyup = (e: KeyboardEvent) => {
+    switch (e.key.toUpperCase()) {
+      case 'W':
 
-
-function scaleNonUniform(sx: number, sy: number) {
-  const m: DOMMatrix2DInit = {
-    a: sx, b: 0, c: 0, d: sy, e: 0, f: 0
+        this.camera.move.up = false
+        break;
+      case 'S':
+        this.camera.move.down = false
+        break;
+      case 'A':
+        this.camera.move.left = false
+        break;
+      case 'D':
+        this.camera.move.right = false
+        break;
+    }
   }
-  return m
+
 }
