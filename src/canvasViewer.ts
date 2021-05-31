@@ -64,12 +64,12 @@ export class CanvasViewer {
     }
   }
 
-  private componentToHex(c: number) {
+  componentToHex(c: number) {
     var hex = clamp(Math.round(c), 255, 0).toString(16);
     return hex.length == 1 ? "0" + hex : hex;
   }
 
-  private rgbToHex(r: number, g: number, b: number) {
+  rgbToHex(r: number, g: number, b: number) {
     return "#" + this.componentToHex(r) + this.componentToHex(g) + this.componentToHex(b);
   }
 }

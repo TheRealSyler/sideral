@@ -2,6 +2,7 @@ import { Map, MapCell, MapCellName } from './map';
 import { degToRad, floor } from './utils';
 import random from 'seedrandom'
 import { islandMaskGen, forestMaskGen, oreMaskGen } from './mapMasks';
+import { MAP_CELLS_PER_ROW } from './globalConstants';
 
 
 export function generateMap(width: number, seed: number) {
@@ -32,6 +33,8 @@ export function generateMap(width: number, seed: number) {
       resourceAmount: getResourceAmount(type, i),
       rotation: rotation,
       type: type,
+      currentUnits: [],
+      position: { x: i % MAP_CELLS_PER_ROW, y: floor(i / MAP_CELLS_PER_ROW) }
     })
 
     if (cellAmounts[type]) {

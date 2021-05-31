@@ -11,10 +11,8 @@ import { FindAStar, MapToAStarNodes } from './aStar';
 
   const seed = 0
   if (a) {
-    // const t = performance.now()
-    const m = generateMap(MAP_CELLS_PER_ROW, seed)
-    // console.log('S T', performance.now() - t)
-    new Game(m, MAP_CELLS_PER_ROW)
+
+    new Game(seed)
   } else {
 
     // const s = 64
@@ -49,7 +47,7 @@ import { FindAStar, MapToAStarNodes } from './aStar';
     start.isObstacle = false
     const end = nodes[3412];
     end.isObstacle = false
-    const g = FindAStar(start, end)
+    const g = FindAStar(start, end) // TODO remove export when removing this.
     setInterval(() => {
       FindAStar(start, end)
     }, 200)

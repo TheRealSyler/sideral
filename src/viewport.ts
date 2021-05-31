@@ -1,9 +1,11 @@
-import { findPath, restoreAStarNode } from './aStar';
+import { findPath, restoreAStarNodes } from './aStar';
 import { CanvasCache } from './canvasCache';
 import { Game, GameMode } from './game';
 
-import { MAP_CELL_SIZE, MAP_MOVE_FACTOR, MAP_PADDING, ZOOM_SCALE_FACTOR, ZOOM_MAX_SCALE, ZOOM_MIN_SCALE, UI_BOTTOM_HEIGHT, UI_TOP_HEIGHT } from './globalConstants';
+import { MAP_CELL_SIZE, MAP_MOVE_FACTOR, MAP_PADDING, ZOOM_SCALE_FACTOR, ZOOM_MAX_SCALE, ZOOM_MIN_SCALE, UI_BOTTOM_HEIGHT, UI_TOP_HEIGHT, MAP_CELLS_PER_ROW } from './globalConstants';
+import { Position } from './interfaces';
 import { render } from './render';
+import { Unit } from './unit';
 
 import { floor, clamp, toPx, distance } from './utils';
 
@@ -13,6 +15,8 @@ export class Viewport extends CanvasCache {
   private canDrag = false
   private dragCursorLock = false
   private showHover = false
+  private selectionEnd: Position = { x: 0, y: 0 };
+  private selectionStart: Position | null = null;
   public mapTextureCanvas = new CanvasCache(this.game.mapSize, 'Map Texture Canvas')
   public buildingTextureCanvas = new CanvasCache(this.game.mapSize, 'Building Texture Canvas')
 
@@ -20,6 +24,7 @@ export class Viewport extends CanvasCache {
   private getViewportWidth = () => window.innerWidth
   private getMaxXPos = (scale: number) => this.getViewportWidth() - (this.game.mapSize * scale) - MAP_PADDING
   private getMaxYPos = (scale: number) => this.getViewportHeight() - (this.game.mapSize * scale) - MAP_PADDING
+  selectionDrag = false
 
 
   constructor(private game: Game) {
@@ -38,7 +43,7 @@ export class Viewport extends CanvasCache {
     // don't change the order of the function calls.
     this.addCtxTransformTacking(this.ctx)
     this.resize()
-    await render(this.mapTextureCanvas, this.buildingTextureCanvas, this.game.map, this.game.mapCellsPerRow)
+    await render(this.mapTextureCanvas, this.buildingTextureCanvas, this.game.map, MAP_CELLS_PER_ROW)
 
     this.ctx.translate((-this.game.mapSize + this.canvas.width) / 2, (-this.game.mapSize + this.canvas.height) / 2)
   }
@@ -50,6 +55,10 @@ export class Viewport extends CanvasCache {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     this.ctx.drawImage(this.mapTextureCanvas.canvas, 0, 0);
     this.ctx.drawImage(this.buildingTextureCanvas.canvas, 0, 0);
+    if (this.selectionStart) {
+      this.ctx.strokeStyle = '#0af'
+      this.ctx.strokeRect(this.selectionStart.x, this.selectionStart.y, this.selectionEnd.x, this.selectionEnd.y)
+    }
     if (mode === 'building') {
       if (this.showHover) {
         const { x, y } = this.ctx.transformedPoint(this.lastX, this.lastY)
@@ -96,37 +105,15 @@ export class Viewport extends CanvasCache {
     const x = e.offsetX || (e.pageX - this.canvas.offsetLeft);
     const y = e.offsetY || (e.pageY - this.canvas.offsetTop);
     if (e.button === 2) {
-      const { x: x2, y: y2 } = this.ctx.transformedPoint(x, y)
-      let movedUnit = false
-      for (let i = 0; i < this.game.units.length; i++) {
-        const unit = this.game.units[i];
-        if (unit.selected) {
-          const endIndex = floor(x2 / MAP_CELL_SIZE) + this.game.mapCellsPerRow * floor(y2 / MAP_CELL_SIZE);
-          if (!this.game.aStarNodes[endIndex].isObstacle) {
-            const startIndex = floor(unit.x / MAP_CELL_SIZE) + this.game.mapCellsPerRow * floor(unit.y / MAP_CELL_SIZE);
-            const path = findPath(this.game.aStarNodes[startIndex], this.game.aStarNodes[endIndex])
-            if (path) {
-              const firstTarget = path.pop()
-              if (firstTarget) {
-                unit.target.x = firstTarget.x * MAP_CELL_SIZE + MAP_CELL_SIZE / 2
-                unit.target.y = firstTarget.y * MAP_CELL_SIZE + MAP_CELL_SIZE / 2
-                unit.path = path
-              }
-              unit.endTarget.x = x2
-              unit.endTarget.y = y2
-            }
-            movedUnit = true
-            for (let i = 0; i < this.game.aStarNodes.length; i++) {
-              restoreAStarNode(this.game.aStarNodes[i])
-            }
-          }
-        }
-      }
-      if (movedUnit) {
+
+      if (this.moveUnits(x, y)) {
         this.game.mode = 'unit'
         this.game.state.set('selectedMapChunk', null)
       }
-    } else if (e.button !== 0) {
+    } else if (e.button === 0) {
+      this.selectionDrag = true
+    }
+    else {
       //@ts-ignore
       document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
 
@@ -139,7 +126,7 @@ export class Viewport extends CanvasCache {
     this.showHover = false
   }
   private mouseup = (e: MouseEvent) => {
-    if (!this.dragCursorLock && e.button === 0) {
+    if (e.button === 0 && !this.selectionStart) {
       const transform = this.ctx.getTransform()
       const x = floor((e.offsetX - transform.e) / transform.a)
       const y = floor((e.offsetY - transform.f) / transform.d)
@@ -162,7 +149,7 @@ export class Viewport extends CanvasCache {
       } else {
         this.game.mode = 'building'
         if (x >= 0 && x < this.game.mapSize && y >= 0 && y < this.game.mapSize) {
-          this.game.state.set('selectedMapChunk', { cell: this.game.map.cells[x2 + this.game.mapCellsPerRow * y2], x: x2, y: y2 })
+          this.game.state.set('selectedMapChunk', { cell: this.game.map.cells[x2 + MAP_CELLS_PER_ROW * y2], x: x2, y: y2 })
         }
       }
     }
@@ -170,6 +157,8 @@ export class Viewport extends CanvasCache {
     this.canDrag = false;
     this.dragCursorLock = false
     this.showHover = true
+    this.selectionDrag = false
+    this.selectionStart = null
     document.exitPointerLock()
   }
 
@@ -190,6 +179,37 @@ export class Viewport extends CanvasCache {
       let y = clamp(f + evt.movementY * MAP_MOVE_FACTOR, MAP_PADDING, this.getMaxYPos(a))
 
       this.ctx.setTransform(a, b, c, d, x, y)
+    } else if (this.selectionDrag) {
+
+      if (this.selectionStart) {
+        const { x: x2, y: y2 } = this.ctx.transformedPoint(this.lastX, this.lastY)
+        this.selectionEnd.x = x2 - this.selectionStart.x
+        this.selectionEnd.y = y2 - this.selectionStart.y
+
+        for (let i = 0; i < this.game.units.length; i++) {
+          const unit = this.game.units[i];
+          const isxInverted = this.selectionEnd.x < 0
+          const isyInverted = this.selectionEnd.y < 0
+          const x = isxInverted ? this.selectionStart.x + this.selectionEnd.x : this.selectionStart.x
+          const xEnd = isxInverted ? this.selectionStart.x : this.selectionStart.x + this.selectionEnd.x
+          const y = isyInverted ? this.selectionStart.y + this.selectionEnd.y : this.selectionStart.y
+          const yEnd = isyInverted ? this.selectionStart.y : this.selectionStart.y + this.selectionEnd.y
+
+          if (unit.x > x && unit.x < xEnd && unit.y > y && unit.y < yEnd) {
+            unit.selected = true
+          } else {
+            unit.selected = false
+          }
+        }
+      } else {
+        const { x: x2, y: y2 } = this.ctx.transformedPoint(this.lastX, this.lastY)
+        this.selectionStart = { x: x2, y: y2 }
+        this.selectionEnd.x = 0
+        this.selectionEnd.y = 0
+        this.game.mode = 'unit'
+        this.showHover = false
+        this.game.state.set('selectedMapChunk', null)
+      }
     } else {
       this.showHover = true
     }
@@ -225,6 +245,36 @@ export class Viewport extends CanvasCache {
     if (delta) this.zoom(delta);
     return evt.preventDefault() && false;
   };
+
+  private moveUnits(x: number, y: number) {
+    const { x: x2, y: y2 } = this.ctx.transformedPoint(x, y);
+    let movedUnit = false;
+
+    for (let i = 0; i < this.game.units.length; i++) {
+      const unit = this.game.units[i];
+      if (unit.selected) {
+        const targetX = x2;
+        const targetY = y2;
+        const endIndex = floor(targetX / MAP_CELL_SIZE) + MAP_CELLS_PER_ROW * floor(targetY / MAP_CELL_SIZE);
+        if (!this.game.aStarNodes[endIndex].isObstacle) {
+          const startIndex = floor(unit.x / MAP_CELL_SIZE) + MAP_CELLS_PER_ROW * floor(unit.y / MAP_CELL_SIZE);
+          const path = findPath(this.game.aStarNodes[startIndex], this.game.aStarNodes[endIndex]);
+          if (path) {
+            unit.path.length = 0
+            unit.path.push(...path);
+            unit.moveToNewTarget(true)
+            unit.endTarget.x = targetX;
+            unit.endTarget.y = targetY;
+          }
+          movedUnit = true;
+          restoreAStarNodes(this.game.aStarNodes);
+
+        }
+      }
+    }
+
+    return movedUnit;
+  }
 
   private updateView() {
     let x = 0;

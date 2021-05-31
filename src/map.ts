@@ -1,5 +1,7 @@
 
 import { Building } from './building';
+import { Position } from './interfaces';
+import { Unit } from './unit';
 
 export enum MapCellTexturePos {
   'gras',
@@ -34,7 +36,9 @@ export interface MapCell {
   type: MapCellName,
   rotation: number,
   resourceAmount: number
-  building: Building | null
+  building: Building | null,
+  currentUnits: Unit[],
+  position: Position
 }
 
 export type Map = {
