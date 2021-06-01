@@ -262,9 +262,9 @@ export class Viewport extends CanvasCache {
           if (path) {
             unit.path.length = 0
             unit.path.push(...path);
-            unit.moveToNewTarget(true)
             unit.endTarget.x = targetX;
             unit.endTarget.y = targetY;
+            unit.moveToNewTarget(true)
           }
           movedUnit = true;
           restoreAStarNodes(this.game.aStarNodes);
