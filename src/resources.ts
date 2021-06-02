@@ -4,7 +4,9 @@ export enum ResourcesEnum {
   wood,
   clay,
   stone,
-  bread
+  bread,
+  bricks,
+  tiles
 }
 
 export type ResourceName = keyof typeof ResourcesEnum;
@@ -14,7 +16,9 @@ export const defaultResources: Resources = {
   clay: 10,
   stone: 50,
   wood: 100,
-  bread: 20
+  bread: 20,
+  bricks: 0,
+  tiles: 0
 }
 
 

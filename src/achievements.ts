@@ -1,4 +1,3 @@
-
 export interface Achievements {
   'Base I'?: true;
   'Base II'?: true;
@@ -16,7 +15,6 @@ export interface Achievements {
 export type AchievementName = keyof Achievements;
 
 export type AchievementStack = AchievementName[] | AchievementName
-
 
 export function checkAchievementRequirement(achievements: Achievements, requirement?: AchievementStack) {
   if (!requirement) return true

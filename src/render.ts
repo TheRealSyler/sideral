@@ -36,9 +36,7 @@ export async function render(mapCanvas: CanvasCache, buildingCanvas: CanvasCache
     if (cell.building) {
       buildingCanvas.ctx.drawImage(await renderBuilding(cell.building), x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
     }
-
   }
-
 }
 
 export async function renderCellBuilding(point: DOMPoint, buildingCanvas: CanvasCache, building: Building) {
