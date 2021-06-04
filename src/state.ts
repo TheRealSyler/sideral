@@ -29,6 +29,10 @@ export class State<State extends { [key: string]: any }> {
       }
     }
   }
+
+  getState() {
+    return this.state
+  }
 }
 
 export interface GameState extends Resources {

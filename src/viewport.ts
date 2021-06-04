@@ -5,7 +5,6 @@ import { Game, GameMode } from './game';
 import { MAP_CELL_SIZE, MAP_MOVE_FACTOR, MAP_PADDING, ZOOM_SCALE_FACTOR, ZOOM_MAX_SCALE, ZOOM_MIN_SCALE, UI_BOTTOM_HEIGHT, UI_TOP_HEIGHT, MAP_CELLS_PER_ROW } from './globalConstants';
 import { Position } from './interfaces';
 import { render } from './render';
-import { Unit } from './unit';
 
 import { floor, clamp, toPx, distance } from './utils';
 
@@ -49,7 +48,7 @@ export class Viewport extends CanvasCache {
   }
 
 
-  public draw(delta: number, mode: GameMode) {
+  public update(delta: number, mode: GameMode) {
     this.updateView();
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)

@@ -5,8 +5,19 @@ import { Map, MapCell } from './map'
 import { addAStarNodeNeighbors, AStarNode, createAStartNode, findPath, restoreAStarNodes, restoreAStarNodesClearObstacle } from './aStar';
 import { CanvasViewer } from './canvasViewer';
 
-type AStartCellNodes = [AStarNode, AStarNode, AStarNode, AStarNode, AStarNode, AStarNode, AStarNode, AStarNode, AStarNode];
+type AStartCellNodes = AStarNode[];
 
+export interface UnitSave {
+  x: number;
+  y: number;
+  target: Position
+  path: Position[]
+  subCellPath: Position[]
+  endTarget: Position
+  currentSubCellPos: Position
+  cellPosition: Position
+  speed: number
+}
 export class Unit {
   x: number;
   y: number;
@@ -15,21 +26,29 @@ export class Unit {
   subCellPath: Position[] = []
   endTarget: Position
   selected = false
-  static cellAStarNodeRows = 3
+  currentSubCellPos: Position = { x: 2, y: 2 }
+
+  static cellAStarNodeRows = 5
   static cellAStarNodes: AStartCellNodes = Unit.createCellNodes()
-  private static subCellSize = MAP_CELL_SIZE / 2
+  static subCellSize = MAP_CELL_SIZE / 3
+  static subCellHalfSize = Unit.subCellSize / 2
+  static subCellQuarterSize = floor(Unit.subCellHalfSize / 2)
+  static newTarget(a: number, a2: number): number {
+    return (a * MAP_CELL_SIZE) + (a2 * Unit.subCellSize) - Unit.subCellHalfSize;
+  }
+
   private static m = MAP_CELL_SIZE / 2
-
-  currentSubCellPos: Position = { x: 1, y: 1 }
-
-  constructor(private map: Map, public currentCell: MapCell, public speed = 0.4) {
-    currentCell.currentUnits.push(this)
-    this.x = currentCell.position.x * MAP_CELL_SIZE + Unit.m
-    this.y = currentCell.position.y * MAP_CELL_SIZE + Unit.m
+  private currentCell: MapCell;
+  constructor(private map: Map, cellPosition: Position, public speed = 0.4) {
+    const cell = map.cells[cellPosition.x + MAP_CELLS_PER_ROW * cellPosition.y]
+    cell.currentUnits.push(this)
+    this.x = cell.position.x * MAP_CELL_SIZE + Unit.m
+    this.y = cell.position.y * MAP_CELL_SIZE + Unit.m
     this.target = { x: this.x, y: this.y }
     this.endTarget = { x: this.x, y: this.y }
+    this.currentCell = cell
   }
-  draw(ctx: CanvasRenderingContext2D) {
+  update(ctx: CanvasRenderingContext2D) {
 
     const angle = angleTo(this.x, this.y, this.target.x, this.target.y)
     const movementX = Math.sin(angle) * (this.speed)
@@ -46,7 +65,7 @@ export class Unit {
     if (this.selected) {
       ctx.strokeStyle = '#0af'
       ctx.beginPath();
-      ctx.arc(this.x, this.y, 10, 0, 2 * Math.PI);
+      ctx.arc(this.x, this.y, 6, 0, 2 * Math.PI);
       // ctx.fill();
       ctx.stroke();
       ctx.strokeStyle = '#f00'
@@ -71,7 +90,7 @@ export class Unit {
       for (let i = 0; i < this.subCellPath.length; i++) {
         const path = this.subCellPath[i];
         ctx.beginPath();
-        ctx.arc((x * MAP_CELL_SIZE) + path.x * Unit.subCellSize, (y * MAP_CELL_SIZE) + path.y * Unit.subCellSize, 3, 0, 3 * Math.PI);
+        ctx.arc(Unit.newTarget(x, path.x), Unit.newTarget(y, path.y), 3, 0, 3 * Math.PI);
         ctx.fill();
       }
       // ctx.fillText(`x: ${movementX.toFixed(4)} y: ${movementY.toFixed(4)}  d: ${d.toFixed(4)}`, this.x, this.y)
@@ -82,13 +101,13 @@ export class Unit {
       ctx.strokeStyle = '#000'
       ctx.fillStyle = '#aaaa'
       ctx.beginPath();
-      ctx.arc(this.x, this.y, 10, 0, 2 * Math.PI);
+      ctx.arc(this.x, this.y, 6, 0, 2 * Math.PI);
       ctx.stroke();
       // ctx.fill();
     }
   }
   moveToNewTarget(newPath = false) {
-    if (newPath && this.path.length > 0) {
+    if (newPath) {
       const { subCellPath } = this.computeCellPath(this.currentCell.position.x, this.currentCell.position.y);
       if (subCellPath) {
 
@@ -101,17 +120,17 @@ export class Unit {
     if (newSubTarget) {
       const x = this.currentCell.position.x;
       const y = this.currentCell.position.y;
-      this.target.x = x * MAP_CELL_SIZE + (newSubTarget.x * Unit.subCellSize)
-      this.target.y = y * MAP_CELL_SIZE + (newSubTarget.y * Unit.subCellSize)
+      this.target.x = Unit.newTarget(x, newSubTarget.x)
+      this.target.y = Unit.newTarget(y, newSubTarget.y)
       this.currentSubCellPos.x = newSubTarget.x
       this.currentSubCellPos.y = newSubTarget.y
     } else {
 
       const newTarget = this.path.pop()
       if (newTarget) {
-        const x23 = (this.currentCell.position.x + 1) - newTarget.x;
-        const y23 = (this.currentCell.position.y + 1) - newTarget.y;
-
+        const x23 = ((this.currentCell.position.x + 1) - newTarget.x) + 1;
+        const y23 = ((this.currentCell.position.y + 1) - newTarget.y) + 1;
+        console.log('23', x23, y23)
         this.currentSubCellPos.x = x23
         this.currentSubCellPos.y = y23
         const { cell, subCellPath } = this.computeCellPath(newTarget.x, newTarget.y);
@@ -120,15 +139,15 @@ export class Unit {
           this.subCellPath.push(...subCellPath)
 
           const newSubTarget = this.subCellPath.pop()
-          cell.currentUnits.filter((u) => u !== this)
+          this.currentCell.currentUnits = this.currentCell.currentUnits.filter((u) => u !== this)
           this.currentCell = cell;
           this.currentCell.currentUnits.push(this)
 
           if (newSubTarget) {
             const x = this.currentCell.position.x;
             const y = this.currentCell.position.y;
-            this.target.x = x * MAP_CELL_SIZE + (newSubTarget.x * Unit.subCellSize)
-            this.target.y = y * MAP_CELL_SIZE + (newSubTarget.y * Unit.subCellSize)
+            this.target.x = Unit.newTarget(x, newSubTarget.x)
+            this.target.y = Unit.newTarget(y, newSubTarget.y)
             this.currentSubCellPos.x = newSubTarget.x
             this.currentSubCellPos.y = newSubTarget.y
           }
@@ -137,28 +156,36 @@ export class Unit {
     }
   }
 
-  computeCellPath(x: number, y: number) {
+
+  private computeCellPath(x: number, y: number) {
 
     const a = this.path[this.path.length - 1]
     const cell = this.map.cells[x + MAP_CELLS_PER_ROW * y]
     let xEnd = 0
     let yEnd = 0
-    if (!a) {
+    if (a) {
+      const x = ((a.x) - (cell.position.x)) + 1
+      const y = ((a.y) - (cell.position.y)) + 1
+
+      const x2 = floor(x)
+      const y2 = floor(y)
+      xEnd = x2
+      yEnd = y2
+      console.log('S', x, y, x2, y2, (cell.position.x * MAP_CELL_SIZE), this.endTarget.x)
+    } else {
       const x = ((this.endTarget.x) - (cell.position.x * MAP_CELL_SIZE))
       const y = ((this.endTarget.y) - (cell.position.y * MAP_CELL_SIZE))
-      const x2 = floor((x + Unit.subCellSize / 2) / Unit.subCellSize)
-      const y2 = floor((y + Unit.subCellSize / 2) / Unit.subCellSize)
+      const x2 = floor(x / (Unit.subCellSize)) + 1
+      const y2 = floor(y / (Unit.subCellSize)) + 1
       xEnd = x2
       yEnd = y2
       console.log(x, y, x2, y2, (cell.position.x * MAP_CELL_SIZE), this.endTarget.x)
-    } else {
-      xEnd = a.x - x + 1
-      yEnd = a.y - y + 1
     }
 
 
     const startIndex = this.currentSubCellPos.x + Unit.cellAStarNodeRows * this.currentSubCellPos.y;
     const endIndex = xEnd + Unit.cellAStarNodeRows * yEnd;
+    console.log('START0', startIndex, endIndex)
     const startCell = Unit.cellAStarNodes[startIndex]
     const endCell = Unit.cellAStarNodes[endIndex]
 
@@ -174,22 +201,54 @@ export class Unit {
     const subCellPath: false | Position[] = findPath(startCell, endCell)
     restoreAStarNodesClearObstacle(Unit.cellAStarNodes)
 
+    if (subCellPath) {
+      subCellPath.push({ x: this.currentSubCellPos.x, y: this.currentSubCellPos.y })
+    }
 
 
     return { cell, subCellPath }
   }
 
   private static createCellNodes(): AStartCellNodes {
-    const nodes: AStartCellNodes = [
-      createAStartNode(0, 0, false), createAStartNode(1, 0, false), createAStartNode(2, 0, false),
-      createAStartNode(0, 1, false), createAStartNode(1, 1, false), createAStartNode(2, 1, false),
-      createAStartNode(0, 2, false), createAStartNode(1, 2, false), createAStartNode(2, 2, false),
-    ]
+    const nodes: AStartCellNodes = []
+    // const nodes: AStartCellNodes = [
+    //   createAStartNode(0, 0, false), createAStartNode(1, 0, false),
 
-    for (let i = 0; i < nodes.length; i++) {
-      addAStarNodeNeighbors(i, Unit.cellAStarNodeRows, nodes, nodes[i])
+    //   createAStartNode(0, 1, false), createAStartNode(1, 1, false),
+    // ]
+    const size = Unit.cellAStarNodeRows * Unit.cellAStarNodeRows
+    for (let i = 0; i < size; i++) {
+      const x = (i % Unit.cellAStarNodeRows)
+      const y = floor((i / Unit.cellAStarNodeRows))
+      const node = createAStartNode(x, y, false)
+      nodes.push(node)
+      addAStarNodeNeighbors(i, Unit.cellAStarNodeRows, nodes, node)
     }
 
     return nodes
+  }
+
+  public save(): UnitSave {
+    return {
+      speed: this.speed,
+      x: this.x,
+      y: this.y,
+      cellPosition: this.currentCell.position,
+      currentSubCellPos: this.currentSubCellPos,
+      endTarget: this.endTarget,
+      path: this.path,
+      subCellPath: this.subCellPath,
+      target: this.target
+    }
+  }
+  public applySave(save: UnitSave) {
+    this.speed = save.speed
+    this.x = save.x
+    this.y = save.y
+    this.currentSubCellPos = save.currentSubCellPos
+    this.endTarget = save.endTarget
+    this.path = save.path
+    this.subCellPath = save.subCellPath
+    this.target = save.target
   }
 }

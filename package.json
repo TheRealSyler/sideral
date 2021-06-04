@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": "webpack serve --mode development",
-    "build": "webpack --mode production"
+    "build": "del dist && webpack --mode production"
   },
   "devDependencies": {
     "@types/seedrandom": "^3.0.0",
@@ -27,6 +27,7 @@
   "dependencies": {
     "dom-chef": "^5.0.0",
     "parse-ms": "^3.0.0",
-    "seedrandom": "^3.0.5"
+    "seedrandom": "^3.0.5",
+    "webpack-bundle-analyzer": "^4.4.2"
   }
 }

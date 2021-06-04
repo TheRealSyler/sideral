@@ -29,11 +29,14 @@ body
     top: 0
     right: 0
     left: 0
-    padding-left: 0.5rem
+    padding: 0 0.5rem
     box-sizing: border-box
     background: var( --top-bar-bg)
     display: flex
-    gap: 1rem
+    justify-content: space-between
+    &-resources
+      display: flex
+      gap: 1rem
 
   &-bottom
     position: fixed
@@ -90,6 +93,8 @@ body
   color: var(--text)
   padding: 0.5rem 1rem
   cursor: pointer
+  &-no-height
+    padding: 0 1rem
   &:hover
     background: var(--button-hover)
   &:disabled

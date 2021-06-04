@@ -7,37 +7,56 @@ import { BuildingInfo, buildingInfo, BuildingLevel, BuildingNames, cellBuildings
 import { displaySeconds, fromNow } from "./time";
 import { UiEvents } from "./uiEvents";
 import { buildingUpgradeEndDate, newBuilding, getLevelRequirement, convertBuildingLevel, buildingUpgradeFormula, buildingEndDate, buildingFormula } from "./buildingFunctions";
-import { Save } from './save';
-import { checkAchievementRequirement } from './achievements';
-import { getBuildingIcon, getCellIcon, getPeopleIcon, getResourceIcon } from './icons';
+import { deleteSave, save, Save } from './save';
+import { Achievements, checkAchievementRequirement } from './achievements';
+import { getBuildingIcon, getCellIcon, getResourceIcon } from './icons';
 import { MAP_CELL_ICON_SIZE } from './globalConstants';
+import { Game } from './game';
 
-export function InitUI(state: State<GameState>, gameSave: Save, topHeight: number, bottomHeight: number) {
+export function InitUI(game: Game, topHeight: number, bottomHeight: number) {
   document.body.style.setProperty('--bottom-height', toPx(bottomHeight))
   document.body.style.setProperty('--cell-icon-size', toPx(MAP_CELL_ICON_SIZE))
-  topUI(state, topHeight);
-  bottomUI(state, gameSave, bottomHeight);
+  topUI(game, topHeight);
+  bottomUI(game.state, game.achievements, bottomHeight);
 }
 
-function topUI(state: State<GameState>, topHeight: number) {
+function topUI(game: Game, topHeight: number) {
   const elements: HTMLSpanElement[] = []
   for (const key in defaultResources) {
     if (Object.prototype.hasOwnProperty.call(defaultResources, key)) {
-      const value = state.get(key as ResourceName)
+      const value = game.state.get(key as ResourceName)
       const val = <span>{value}</span>
-      state.addListener(key as ResourceName, (v) => {
+      game.state.addListener(key as ResourceName, (v) => {
         val.textContent = v.toString()
       })
       elements.push(<span className="resource" title={key}>{getResourceIcon(key as ResourceName)} {val}</span>)
     }
   }
-  const top = <div className="ui-top">{elements}</div>;
+
+  const top = <div className="ui-top">
+    <div className="ui-top-resources">{elements}</div>
+    <div className="ui-top-resources">
+
+
+      <button className="button button-no-height" onClick={() => {
+        deleteSave()
+        location.reload()
+      }}>Delete Save And Reload</button>
+      <button className="button button-no-height" onClick={() => {
+        save(game)
+      }}>Save</button>
+      <button className="button button-no-height" onClick={() => {
+        location.reload()
+      }}>Reload</button>
+
+    </div>
+  </div>;
 
   top.style.height = toPx(topHeight);
   document.body.appendChild(top);
 }
 
-function bottomUI(state: State<GameState>, gameSave: Save, bottomHeight: number,) {
+function bottomUI(state: State<GameState>, achievements: Achievements, bottomHeight: number,) {
   const uiEvents = new UiEvents()
   const cellName = <span > </span>;
   const cellIcon = <div className="cell-icon"></div>;
@@ -80,13 +99,13 @@ function bottomUI(state: State<GameState>, gameSave: Save, bottomHeight: number,
 
         }
 
-        cellBuilding.appendChild(buildingCard(building.name, gameSave, building.level < 3 ? 3 : building.level, state, cell, upgradeTime, prodTime))
+        cellBuilding.appendChild(buildingCard(building.name, achievements, building.level < 3 ? 3 : building.level, state, cell, upgradeTime, prodTime))
       } else {
         const availableBuildings = cellBuildings[cell.type]
         if (availableBuildings) {
           for (let i = 0; i < availableBuildings.length; i++) {
             const buildingName = availableBuildings[i];
-            cellBuilding.appendChild(buildingCard(buildingName, gameSave, 3, state, cell))
+            cellBuilding.appendChild(buildingCard(buildingName, achievements, 3, state, cell))
           }
         }
       }
@@ -117,7 +136,7 @@ function bottomUI(state: State<GameState>, gameSave: Save, bottomHeight: number,
 
 function buildingCard(
   building: BuildingNames,
-  gameSave: Save,
+  achievements: Achievements,
   level: number,
   state: State<GameState>,
   cell: MapCell,
@@ -133,9 +152,9 @@ function buildingCard(
 
   let canBuild = true
   if (isAlreadyBuilt && req) {
-    canBuild = checkAchievementRequirement(gameSave.achievements, req[levelName]);
+    canBuild = checkAchievementRequirement(achievements, req[levelName]);
   } else {
-    canBuild = checkAchievementRequirement(gameSave.achievements, info.constructionAchievements);
+    canBuild = checkAchievementRequirement(achievements, info.constructionAchievements);
   }
 
   const reqResources = isAlreadyBuilt ? getLevelRequirement(levelName, info.upgradeRequirements) : info.constructionRequirements;
@@ -223,8 +242,6 @@ function displayResourceStuff({ info, opacity, isAlreadyBuilt, levelName, level,
       </div>}
     </Fragment>
   }
-
-
 }
 
 function resourceArray(stack: ResourceStack) {
