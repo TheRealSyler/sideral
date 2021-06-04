@@ -12,6 +12,10 @@ const textureCache = new TextureCache<BuildingNames>({
   house: house,
   bakery: bakeryTex,
   woodcutter: bakeryTex,
+  'stone mine': bakeryTex,
+  'wheat farm': bakeryTex,
+  'wind mill': bakeryTex,
+  farm: bakeryTex,
 })
 
 const buildingCanvas = new CanvasCache(MAP_CELL_SIZE, 'Building Renderer')

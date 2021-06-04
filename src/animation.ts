@@ -1,5 +1,6 @@
 import { TextureCache } from './textureCache';
 import buildPos from './assets/build.png'
+import disabledPos from './assets/disabled.png'
 import { CanvasCache } from './canvasCache';
 import { MAP_CELL_SIZE } from './globalConstants';
 import { floor, getTextureOffset } from './utils';
@@ -11,17 +12,22 @@ interface Animation {
   timePerFrame: number,
 }
 
-type Animations = 'build'
+type Animations = 'build' | 'disabled'
 
 const animationInfo: { [key in Animations]: Animation } = {
   build: {
+    texturesPerRow: 3,
+    timePerFrame: 1000 / 18
+  },
+  disabled: {
     texturesPerRow: 3,
     timePerFrame: 1000 / 18
   }
 }
 
 const textureCache = new TextureCache<Animations>({
-  build: buildPos
+  build: buildPos,
+  disabled: disabledPos
 })
 
 const animationCanvas = new CanvasCache(MAP_CELL_SIZE, 'Animation Render Canvas')

@@ -10,6 +10,7 @@ export interface Achievements {
   'Base IX'?: true;
   'Base X'?: true;
   'Woodcutter I'?: true;
+  'Stone Mine I'?: true;
 };
 
 export type AchievementName = keyof Achievements;

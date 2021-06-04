@@ -2,14 +2,14 @@ import { MapCell } from "./map";
 import { State, GameState } from "./state";
 import { toPx } from "./utils";
 import { Fragment, h } from 'dom-chef'
-import { defaultResources, Resources, checkAndSubtractResources, ResourceName } from "./resources";
-import { buildingInfo, BuildingNames, cellBuildings, } from "./building";
+import { defaultResources, checkAndSubtractResources, ResourceName, ResourceStack } from "./resources";
+import { BuildingInfo, buildingInfo, BuildingLevel, BuildingNames, cellBuildings, } from "./building";
 import { displaySeconds, fromNow } from "./time";
 import { UiEvents } from "./uiEvents";
-import { buildingUpgradeEndDate, buildingProductionEndDate, newBuilding, getLevelRequirement, convertBuildingLevel, buildingUpgradeFormula, buildingProductionFormula } from "./buildingFunctions";
+import { buildingUpgradeEndDate, newBuilding, getLevelRequirement, convertBuildingLevel, buildingUpgradeFormula, buildingEndDate, buildingFormula } from "./buildingFunctions";
 import { Save } from './save';
 import { checkAchievementRequirement } from './achievements';
-import { getBuildingIcon, getCellIcon, getResourceIcon } from './icons';
+import { getBuildingIcon, getCellIcon, getPeopleIcon, getResourceIcon } from './icons';
 import { MAP_CELL_ICON_SIZE } from './globalConstants';
 
 export function InitUI(state: State<GameState>, gameSave: Save, topHeight: number, bottomHeight: number) {
@@ -28,7 +28,7 @@ function topUI(state: State<GameState>, topHeight: number) {
       state.addListener(key as ResourceName, (v) => {
         val.textContent = v.toString()
       })
-      elements.push(<span className="resource" title={key}>{val} {getResourceIcon(key as ResourceName)}</span>)
+      elements.push(<span className="resource" title={key}>{getResourceIcon(key as ResourceName)} {val}</span>)
     }
   }
   const top = <div className="ui-top">{elements}</div>;
@@ -73,7 +73,7 @@ function bottomUI(state: State<GameState>, gameSave: Save, bottomHeight: number,
           updateUpgradeTime()
         } else if (info.canProduce) {
           const updateProductionTime = () => {
-            prodTime.textContent = fromNow((buildingProductionEndDate(building, info)));
+            prodTime.textContent = fromNow((buildingEndDate(building, info.production)));
           };
           uiEvents.add(upgradeTimeLeftEvent, updateProductionTime);
           updateProductionTime()
@@ -108,10 +108,12 @@ function bottomUI(state: State<GameState>, gameSave: Save, bottomHeight: number,
 
   </div>;
 
+  bottom.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    bottom.scrollLeft += e.deltaY
+  })
   document.body.appendChild(bottom);
 }
-
-
 
 function buildingCard(
   building: BuildingNames,
@@ -138,63 +140,42 @@ function buildingCard(
 
   const reqResources = isAlreadyBuilt ? getLevelRequirement(levelName, info.upgradeRequirements) : info.constructionRequirements;
 
-  const buildResources = []
-  if (reqResources) {
-    for (let i = 0; i < reqResources.length; i++) {
-      const resource = reqResources[i];
-      buildResources.push(<div className="resource" title={resource.type} >{getResourceIcon(resource.type)} {resource.amount}</div>)
-    }
-  }
   const productionTimeReduction = info.canProduce ?
-    `-${displaySeconds(buildingProductionFormula(info, level) - buildingProductionFormula(info, level + 1))} Production time` : null;
+    `-${displaySeconds(buildingFormula(info.production, level) - buildingFormula(info.production, level + 1))} Production time` : null;
 
   const aUnlocks = info.achievementUnlocks;
   const nextLevelAchievements = aUnlocks && aUnlocks[convertBuildingLevel(level + 1)];
   const aReq = info.achievementRequirement
-  const aRequirements = aReq && aReq[levelName]
+  const achievementReq = aReq && aReq[levelName]
 
-  const resourceProdReq = info.canProduce && getLevelRequirement(isAlreadyBuilt ? levelName : 'I', info.productionResourceRequirements)
+  const opacity = isUpgrading ? 0 : 1;
 
 
   return <div className="building-card">
     <span>{building} {levelName}</span>
     <div className="building-card-middle">
       {getBuildingIcon(building)}
-      <div className="building-card-resources" style={{ opacity: isUpgrading ? 0 : 1 }}>
+      <div className="building-card-resources" style={{ opacity }}>
         {isAlreadyBuilt ? 'Upgrade' : 'Build'}
-        {buildResources}
+        {reqResources && resourceArray(reqResources)}
         {isAlreadyBuilt ?
-          (flattenArray(aRequirements))
+          (flattenArray(achievementReq))
           : <span>{info.constructionAchievements}</span>}
       </div>
+      {displayResourceStuff({ info, isAlreadyBuilt, level, levelName, opacity, prodTime })}
       {
-        info.canProduce && <div className="building-card-column" style={{ opacity: isUpgrading ? 0 : 1 }}>
-          Produces
-        {isAlreadyBuilt && <span>every {displaySeconds(buildingProductionFormula(info, level))}</span>}
-          <span className="resource">{getResourceIcon(info.productionType)}
-            {isAlreadyBuilt ?
-              prodTime : `every ${displaySeconds(info.productionRate)}`}
-          </span>
-        </div>
-      }
-      {
-        resourceProdReq && <div className="building-card-column" style={{ opacity: isUpgrading ? 0 : 1 }}>
-          Uses
-        {Array.isArray(resourceProdReq) && resourceProdReq.map((v) => <span className="resource">{v.amount} {getResourceIcon(v.type)}</span>)}
-        </div>
-      }
-      {
-        nextLevelAchievements && <div className="building-card-column" style={{ opacity: isUpgrading ? 0 : 1 }}>
+        nextLevelAchievements && <div className="building-card-column" style={{ opacity }}>
           Unlocks
         {flattenArray(nextLevelAchievements)}
         </div>
       }
       {
-        isAlreadyBuilt && productionTimeReduction ? <div className="building-card-column" style={{ opacity: isUpgrading ? 0 : 1 }}>
+        isAlreadyBuilt && productionTimeReduction && <div className="building-card-column" style={{ opacity }}>
           Next Level
           <span>{productionTimeReduction}</span>
-        </div> : null
+        </div>
       }
+
     </div>
 
     <button
@@ -205,7 +186,6 @@ function buildingCard(
           console.error('This should not happen, UI - build building card, (ctrl f this, obviously)')
           return
         }
-
         if (canBuild && checkAndSubtractResources(state, reqResources)) {
           if (cell.building) {
             cell.building.isUpgrading = true
@@ -223,7 +203,48 @@ function buildingCard(
   </div>
 }
 
+function displayResourceStuff({ info, opacity, isAlreadyBuilt, levelName, level, prodTime }: displayResourceStuffArgs) {
+  if (info.canProduce) {
+    const resourceProdReq = getLevelRequirement(isAlreadyBuilt
+      ? levelName : 'I', info.production.requirements)
+
+    return <Fragment>
+      <div className="building-card-column" style={{ opacity: opacity }}>
+        Produces
+        {isAlreadyBuilt && <span>every {displaySeconds(buildingFormula(info.production, level))}</span>}
+        <span className="resource">{getResourceIcon(info.productionType)}
+          {isAlreadyBuilt ?
+            prodTime : `every ${displaySeconds(info.production.rate)}`}
+        </span>
+      </div>
+      {resourceProdReq && <div className="building-card-column" style={{ opacity }}>
+        Uses
+          {resourceArray(resourceProdReq)}
+      </div>}
+    </Fragment>
+  }
+
+
+}
+
+function resourceArray(stack: ResourceStack) {
+  return stack.map((v) =>
+    <span className="resource">
+      {v.amount} {getResourceIcon(v.type)}
+    </span>
+  );
+}
+
 function flattenArray(aRequirements?: string | string[]) {
   return Array.isArray(aRequirements) ?
     aRequirements.map(v => <span>{v}</span>) : <span>{aRequirements}</span>;
 }
+
+type displayResourceStuffArgs = {
+  info: BuildingInfo;
+  opacity: number;
+  isAlreadyBuilt: boolean;
+  levelName: BuildingLevel;
+  level: number;
+  prodTime?: HTMLSpanElement;
+};

@@ -1,4 +1,4 @@
-import { AchievementName, AchievementStack } from './achievements';
+import { AchievementStack } from './achievements';
 import { MapCellName } from "./map";
 import { Resources, ResourceStack } from "./resources";
 
@@ -11,8 +11,9 @@ export interface Building {
 }
 
 export const cellBuildings: { [key in MapCellName]?: BuildingNames[] } = {
-  gras: ['base', 'house', 'bakery',],
-  forest: ['woodcutter']
+  gras: ['base', 'house', 'farm', 'bakery', 'wheat farm', 'wind mill'],
+  forest: ['woodcutter'],
+  stone: ['stone mine']
 }
 
 export type LevelRequirement<T> = {
@@ -23,7 +24,7 @@ interface BaseBuildingInfo {
   /**build time in seconds */
   buildTime: number;
   constructionTime: number;
-  // /**build time multiplier per level */
+  /**build time multiplier per level */
   buildTimeMultiplier: number;
   constructionRequirements: ResourceStack;
   constructionAchievements?: AchievementStack;
@@ -32,26 +33,25 @@ interface BaseBuildingInfo {
   achievementUnlocks?: LevelRequirement<AchievementStack>;
 }
 
-
 export interface ProductionBuildingInfo extends BaseBuildingInfo {
-  canProduce?: boolean
-  /**resource production per second */
-  productionRate: number;
-  // /**production rate  multiplier per level */
-  productionRateMultiplier: number;
-  /** if specified it uses the resources otherwise the cell resources are used */
-  productionResourceRequirements?: LevelRequirement<ResourceStack>;
+  canProduce: true
+  production: Requirements
   productionType: keyof Resources
 }
+// TODO find better name
+export type Requirements = {
+  requirements?: LevelRequirement<ResourceStack>;
+  rate: number;
+  rateMultiplier: number;
+};
 
-
-interface NonProductionBuildingInfo extends BaseBuildingInfo {
-  canProduce?: false
+export interface NonProductionBuildingInfo extends BaseBuildingInfo {
+  canProduce?: false;
 }
 
 export type BuildingInfo = NonProductionBuildingInfo | ProductionBuildingInfo
 export enum BuildingEnum {
-  'base', 'house', 'woodcutter', 'bakery'
+  'base', 'house', 'woodcutter', 'bakery', 'stone mine', 'wheat farm', 'wind mill', 'farm'
 }
 export type BuildingNames = keyof typeof BuildingEnum
 
@@ -69,12 +69,12 @@ export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
     constructionRequirements: [{ amount: 20, type: 'wood' }, { amount: 10, type: 'stone' }],
     upgradeRequirements: { I: [{ amount: 40, type: 'wood' }, { amount: 20, type: 'stone' }], },
     achievementUnlocks: { I: 'Base I', II: 'Base II', III: 'Base III', IV: 'Base IV', V: 'Base V', VI: 'Base VI', VII: 'Base VII', VIII: 'Base VIII', IX: 'Base IX', X: 'Base X' },
-    achievementRequirement: { I: 'Woodcutter I' }
+    achievementRequirement: { I: 'Woodcutter I', II: 'Stone Mine I' },
   },
   house: {
     buildTime: 2,
     buildTimeMultiplier: 4.5,
-    constructionTime: 10,
+    constructionTime: 2,
     achievementRequirement: { I: 'Base II' },
     constructionAchievements: 'Base I',
     constructionRequirements: [{ amount: 20, type: 'wood' }],
@@ -87,25 +87,87 @@ export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
     constructionRequirements: [{ amount: 20, type: 'wood' }],
     upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] },
     canProduce: true,
-    productionRate: 10,
-    productionRateMultiplier: 0.75,
+    production: {
+      rate: 2,
+      rateMultiplier: 0.75,
+    },
     constructionAchievements: 'Base I',
     achievementRequirement: { I: 'Base II', II: 'Base III' },
     achievementUnlocks: { I: 'Woodcutter I' },
-    productionType: 'wood'
+    productionType: 'wood',
+  },
+  "stone mine": {
+    buildTime: 3,
+    buildTimeMultiplier: 2,
+    constructionTime: 2,
+    constructionRequirements: [{ amount: 20, type: 'wood' }],
+    upgradeRequirements: { I: [{ amount: 30, type: 'wood' }] },
+    canProduce: true,
+    production: {
+      rate: 2,
+      rateMultiplier: 0.75,
+    },
+    constructionAchievements: 'Base II',
+    achievementRequirement: { I: 'Base III', },
+    achievementUnlocks: { I: 'Stone Mine I' },
+    productionType: 'stone',
   },
   bakery: {
-    buildTime: 60,
+    buildTime: 2,
     buildTimeMultiplier: 4.5,
     constructionTime: 2,
     canProduce: true,
-    productionRate: 5,
-    productionType: 'bread',
-    constructionAchievements: 'Base I',
-    achievementRequirement: { I: 'Base I' },
-    productionResourceRequirements: { I: [{ amount: 1, type: 'clay' }, { amount: 1, type: 'wood' }] },
-    productionRateMultiplier: 0.75,
+    production: {
+      rate: 2,
+      rateMultiplier: 0.75,
+      requirements: { I: [{ amount: 1, type: 'flour' }] }
+    },
+    productionType: 'food',
+    constructionAchievements: 'Base IV',
     constructionRequirements: [{ amount: 20, type: 'wood' }],
-    upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] }
+    upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] },
+  },
+  "wheat farm": {
+    buildTime: 2,
+    buildTimeMultiplier: 4.5,
+    constructionTime: 2,
+    canProduce: true,
+    production: {
+      rate: 2,
+      rateMultiplier: 0.75,
+    },
+    productionType: 'wheat',
+    constructionAchievements: 'Base IV',
+    constructionRequirements: [{ amount: 20, type: 'wood' }],
+    upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] },
+  },
+  "wind mill": {
+    buildTime: 2,
+    buildTimeMultiplier: 4.5,
+    constructionTime: 2,
+    canProduce: true,
+    production: {
+      rate: 2,
+      rateMultiplier: 0.75,
+      requirements: { I: [{ amount: 1, type: 'wheat' }] }
+    },
+    productionType: 'flour',
+    constructionAchievements: 'Base IV',
+    constructionRequirements: [{ amount: 20, type: 'wood' }],
+    upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] },
+  },
+  farm: {
+    buildTime: 2,
+    buildTimeMultiplier: 4.5,
+    constructionTime: 2,
+    canProduce: true,
+    production: {
+      rate: 2,
+      rateMultiplier: 0.75,
+    },
+    productionType: 'food',
+    constructionAchievements: 'Base I',
+    constructionRequirements: [{ amount: 20, type: 'wood' }],
+    upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] },
   },
 }

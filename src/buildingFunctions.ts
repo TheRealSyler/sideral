@@ -1,7 +1,5 @@
-import { Building, BuildingInfo, BuildingNames, buildingInfo, ProductionBuildingInfo, BuildingLevel, BuildingLevelsEnum, LevelRequirement } from "./building";
+import { Building, BuildingInfo, BuildingNames, buildingInfo, BuildingLevel, BuildingLevelsEnum, LevelRequirement, Requirements } from "./building";
 import { fromNow } from "./time";
-
-
 
 export function newBuilding(type: BuildingNames): Building {
   return {
@@ -56,19 +54,22 @@ export function checkBuildingUpgradeTimes(name: BuildingNames) {
     console.log(fromNow(buildingUpgradeEndDate({ level: i, date: Date.now() } as Building, info)))
   }
 }
-// # PRODUCTION
-export function buildingProductionEndDate(building: Building, info: ProductionBuildingInfo) {
-  return building.date + buildingProductionFormula(info, building.level) * 1000;
+
+// # MAINTENANCE | PRODUCTION
+export function buildingEndDate(building: Building, req: Requirements) {
+  return building.date + buildingFormula(req, building.level) * 1000;
 }
 
-export function buildingProductionFormula(info: ProductionBuildingInfo, level: number) {
-  return Math.round(info.productionRate / (Math.pow(level - 3, info.productionRateMultiplier)));
+export function buildingFormula(info: Requirements, level: number) {
+  return Math.round(info.rate / (Math.pow(level - 3, info.rateMultiplier)));
 }
 
 /** @internal @debug */
 export function checkBuildingProductionTimes(name: BuildingNames) {
   const info = buildingInfo[name]
-  for (let i = 4; i < 14; i++) {
-    console.log(fromNow(buildingProductionEndDate({ level: i, date: Date.now() } as Building, info as any)))
+  if (info.canProduce) {
+    for (let i = 4; i < 14; i++) {
+      console.log(fromNow(buildingEndDate({ level: i, date: Date.now() } as Building, info.production)))
+    }
   }
 }
