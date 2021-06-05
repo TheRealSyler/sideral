@@ -48,31 +48,33 @@ export class Game {
     const save = loadSave()
     if (save) {
       this.map = save.map
+      this.aStarNodes = MapToAStarNodes(this.map, MAP_CELLS_PER_ROW)
       this.achievements = save.achievements
       this.state = new State<GameState>(save.state)
       this.units = save.units.map(save => {
-        const newUnit = new Unit(this.map, save.cellPosition)
+        const newUnit = new Unit(this, save.cellPosition)
         newUnit.applySave(save)
         return newUnit
       })
     } else {
       this.map = generateMap(MAP_CELLS_PER_ROW, this.seed)
+      this.aStarNodes = MapToAStarNodes(this.map, MAP_CELLS_PER_ROW)
       this.achievements = {}
       this.state = new State<GameState>({
         ...defaultResources,
         selectedMapChunk: null,
       })
       this.units = [
-        new Unit(this.map, this.map.cells[2012].position),
-        new Unit(this.map, this.map.cells[2014].position, 4),
-        new Unit(this.map, this.map.cells[2015].position, 3),
-        new Unit(this.map, this.map.cells[2016].position, 3),
-        new Unit(this.map, this.map.cells[2017].position, 3),
-        new Unit(this.map, this.map.cells[2019].position, 3),
-        new Unit(this.map, this.map.cells[2020].position, 3)
+        new Unit(this, this.map.cells[2012].position),
+        new Unit(this, this.map.cells[2014].position, 4),
+        new Unit(this, this.map.cells[2015].position, 3),
+        new Unit(this, this.map.cells[2016].position, 3),
+        new Unit(this, this.map.cells[2017].position, 3),
+        new Unit(this, this.map.cells[2019].position, 3),
+        new Unit(this, this.map.cells[2020].position, 3)
       ]
     }
-    this.aStarNodes = MapToAStarNodes(this.map, MAP_CELLS_PER_ROW)
+
 
 
     InitUI(this, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT)
@@ -211,41 +213,19 @@ export class Game {
           //   this.viewport.ctx.drawImage(await renderAnimation('disabled', delta), x2, y2)
           // }
         }
-        let s = false
-        for (let j = 0; j < this.map.cells[i].currentUnits.length; j++) {
-          const unit = this.map.cells[i].currentUnits[j];
-          if (unit.selected) {
-            s = true
 
-          }
-        }
-        if (s) {
-
-          this.viewport.ctx.fillStyle = '#000'
-          this.viewport.ctx.strokeStyle = '#000'
-          for (let i = 0; i < Unit.cellAStarNodes.length; i++) {
-            const x3 = i % Unit.cellAStarNodeRows
-            const y3 = floor(i / Unit.cellAStarNodeRows)
-            this.viewport.ctx.beginPath();
-            this.viewport.ctx.arc(Unit.newTarget(x, x3), Unit.newTarget(y, y3), 1, 0, 2 * Math.PI);
-            this.viewport.ctx.fill();
-            this.viewport.ctx.font = '5px sans-serif'
-            this.viewport.ctx.fillText(`x:${x3} y: ${y3}`,
-              Unit.newTarget(x, x3) - 11,
-              Unit.newTarget(y, y3))
-            this.viewport.ctx.fillText(`I:${i}`,
-              Unit.newTarget(x, x3) - 11,
-              Unit.newTarget(y, y3) + 5)
-            this.viewport.ctx.lineWidth = 0.4
-            this.viewport.ctx.beginPath();
-            this.viewport.ctx.rect(x2 + ((x3 - 1) * Unit.subCellSize), y2 + ((y3 - 1) * Unit.subCellSize), Unit.subCellSize, Unit.subCellSize);
-            this.viewport.ctx.stroke();
-          }
-        }
-        this.viewport.ctx.strokeStyle = '#f00'
-        this.viewport.ctx.beginPath();
-        this.viewport.ctx.rect(x2, y2, MAP_CELL_SIZE, MAP_CELL_SIZE);
-        this.viewport.ctx.stroke();
+        // const node = this.aStarNodes[i]
+        // this.viewport.ctx.fillStyle = '#f003'
+        // if (node.isObstacle) {
+        //   this.viewport.ctx.beginPath();
+        //   this.viewport.ctx.rect(x2, y2, MAP_CELL_SIZE, MAP_CELL_SIZE);
+        //   this.viewport.ctx.fill();
+        // }
+        // this.viewport.ctx.fillStyle = '#000'
+        // this.viewport.ctx.strokeStyle = '#f00'
+        // this.viewport.ctx.beginPath();
+        // this.viewport.ctx.rect(x2, y2, MAP_CELL_SIZE, MAP_CELL_SIZE);
+        // this.viewport.ctx.stroke();
 
         // this.viewport.ctx.fillText(`x:${x} y: ${y} i: ${i}`,
         //   x2 + 2,

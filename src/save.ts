@@ -33,7 +33,7 @@ export async function save(game: Game, slot = saveSlot) {
   console.log('Saved Game to Slot:', slot)
   const save: Save = {
     date: Date.now(),
-    map: { cells: game.map.cells.map((cell) => ({ ...cell, currentUnits: [] })), indices: game.map.indices },
+    map: { cells: game.map.cells.map((cell) => ({ ...cell, currentUnit: undefined })), indices: game.map.indices },
     achievements: game.achievements,
     state: game.state.getState(),
     units: game.units.map((unit) => unit.save())

@@ -33,7 +33,7 @@ export function generateMap(width: number, seed: number) {
       resourceAmount: getResourceAmount(type, i),
       rotation: rotation,
       type: type,
-      currentUnits: [],
+      currentUnit: undefined,
       position: { x: i % MAP_CELLS_PER_ROW, y: floor(i / MAP_CELLS_PER_ROW) }
     })
 

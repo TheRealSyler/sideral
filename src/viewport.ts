@@ -134,10 +134,11 @@ export class Viewport extends CanvasCache {
       const x2 = floor(x / MAP_CELL_SIZE)
       const y2 = floor(y / MAP_CELL_SIZE)
       let selectUnit = false
+      const cellIndex = x2 + MAP_CELLS_PER_ROW * y2
       for (let i = 0; i < this.game.units.length; i++) {
         const unit = this.game.units[i];
-        const d = distance(x, y, unit.x, unit.y)
-        if (d < 10) {
+        const cell = this.game.map.cells[cellIndex];
+        if (cell.currentUnit === unit) {
           selectUnit = true
           unit.selected = true
         } else {
@@ -256,16 +257,31 @@ export class Viewport extends CanvasCache {
       if (unit.selected) {
         const targetX = x2;
         const targetY = y2;
-        const endIndex = floor(targetX / MAP_CELL_SIZE) + MAP_CELLS_PER_ROW * floor(targetY / MAP_CELL_SIZE);
+        const targetXCell = floor(targetX / MAP_CELL_SIZE);
+        const targetYCell = floor(targetY / MAP_CELL_SIZE);
+        const endIndex = targetXCell + MAP_CELLS_PER_ROW * targetYCell;
         if (!this.game.aStarNodes[endIndex].isObstacle) {
           const startIndex = floor(unit.x / MAP_CELL_SIZE) + MAP_CELLS_PER_ROW * floor(unit.y / MAP_CELL_SIZE);
-          const path = findPath(this.game.aStarNodes[startIndex], this.game.aStarNodes[endIndex]);
-          if (path) {
+          if (startIndex === endIndex) {
             unit.path.length = 0
-            unit.path.push(...path);
+            unit.path.push({ x: targetXCell, y: targetYCell });
             unit.endTarget.x = targetX;
             unit.endTarget.y = targetY;
-            unit.moveToNewTarget(true)
+            unit.moveToNewTarget()
+          } else {
+            const oldTargetX = floor(unit.target.x / MAP_CELL_SIZE)
+            const oldTargetY = floor(unit.target.y / MAP_CELL_SIZE)
+            const i = oldTargetX + MAP_CELLS_PER_ROW * oldTargetY
+            this.game.aStarNodes[i].isObstacle = false
+
+            const path = findPath(this.game.aStarNodes[startIndex], this.game.aStarNodes[endIndex]);
+            if (path) {
+              unit.path.length = 0
+              unit.path.push(...path);
+              unit.endTarget.x = targetX;
+              unit.endTarget.y = targetY;
+              unit.moveToNewTarget()
+            }
           }
           movedUnit = true;
           restoreAStarNodes(this.game.aStarNodes);

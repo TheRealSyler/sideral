@@ -37,7 +37,7 @@ export interface MapCell {
   rotation: number,
   resourceAmount: number
   building: Building | null,
-  currentUnits: Unit[],
+  currentUnit?: Unit,
   position: Position
 }
 
