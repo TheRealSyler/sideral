@@ -16,7 +16,7 @@ export interface UnitSave {
   endTarget: Position
   currentSubCellPos: Position
   cellPosition: Position
-  speed: number
+  speed: number,
 }
 export class Unit {
   x: number;
@@ -27,7 +27,6 @@ export class Unit {
   endTarget: Position
   selected = false
   currentSubCellPos: Position = { x: 2, y: 2 }
-
   static cellAStarNodeRows = 5
   static cellAStarNodes: AStartCellNodes = Unit.createCellNodes()
   static subCellSize = MAP_CELL_SIZE / 3
@@ -108,7 +107,7 @@ export class Unit {
   }
   moveToNewTarget(newPath = false) {
     if (newPath) {
-      const { subCellPath } = this.computeCellPath(this.currentCell.position.x, this.currentCell.position.y);
+      const { subCellPath } = this.computeSubCellPath(this.currentCell.position.x, this.currentCell.position.y);
       if (subCellPath) {
 
         this.subCellPath.length = 0
@@ -128,12 +127,16 @@ export class Unit {
 
       const newTarget = this.path.pop()
       if (newTarget) {
+
         const x23 = ((this.currentCell.position.x + 1) - newTarget.x) + 1;
         const y23 = ((this.currentCell.position.y + 1) - newTarget.y) + 1;
-        console.log('23', x23, y23)
-        this.currentSubCellPos.x = x23
-        this.currentSubCellPos.y = y23
-        const { cell, subCellPath } = this.computeCellPath(newTarget.x, newTarget.y);
+        const x34 = x23 === 2 ? (this.currentSubCellPos.x - 2) : 0;
+        const y34 = y23 === 2 ? (this.currentSubCellPos.y - 2) : 0;
+
+        // console.log('23', x23, x34, y23, y34)
+        this.currentSubCellPos.x = x23 + x34
+        this.currentSubCellPos.y = y23 + y34
+        const { cell, subCellPath } = this.computeSubCellPath(newTarget.x, newTarget.y);
         if (subCellPath) {
           this.subCellPath.length = 0
           this.subCellPath.push(...subCellPath)
@@ -157,43 +160,67 @@ export class Unit {
   }
 
 
-  private computeCellPath(x: number, y: number) {
+  private computeSubCellPath(x: number, y: number) {
 
-    const a = this.path[this.path.length - 1]
+    const path = this.path[this.path.length - 1]
     const cell = this.map.cells[x + MAP_CELLS_PER_ROW * y]
+    let nextCell: MapCell | undefined = undefined;
     let xEnd = 0
     let yEnd = 0
-    if (a) {
-      const x = ((a.x) - (cell.position.x)) + 1
-      const y = ((a.y) - (cell.position.y)) + 1
-
-      const x2 = floor(x)
-      const y2 = floor(y)
+    let xOffset2 = 0
+    let yOffset2 = 0
+    if (path) {
+      const x = ((path.x) - (cell.position.x)) + 1
+      const y = ((path.y) - (cell.position.y)) + 1
+      const sxO = this.currentSubCellPos.x - 2
+      const syO = this.currentSubCellPos.y - 2
+      xOffset2 = x - 1
+      yOffset2 = y - 1
+      const xOffset = (x === 1 ? sxO : 0)
+      const yOffset = (y === 1 ? syO : 0)
+      const x2 = x * 2 + xOffset
+      const y2 = y * 2 + yOffset
       xEnd = x2
       yEnd = y2
-      console.log('S', x, y, x2, y2, (cell.position.x * MAP_CELL_SIZE), this.endTarget.x)
+      nextCell = this.map.cells[path.x + MAP_CELLS_PER_ROW * path.y]
+      // console.log('S', x, x2, sxO,)
     } else {
       const x = ((this.endTarget.x) - (cell.position.x * MAP_CELL_SIZE))
       const y = ((this.endTarget.y) - (cell.position.y * MAP_CELL_SIZE))
       const x2 = floor(x / (Unit.subCellSize)) + 1
       const y2 = floor(y / (Unit.subCellSize)) + 1
+
       xEnd = x2
       yEnd = y2
-      console.log(x, y, x2, y2, (cell.position.x * MAP_CELL_SIZE), this.endTarget.x)
+      // console.log('NOT S', xEnd, yEnd)
+      // console.log(x, y, x2, y2, (cell.position.x * MAP_CELL_SIZE), this.endTarget.x)
     }
 
 
     const startIndex = this.currentSubCellPos.x + Unit.cellAStarNodeRows * this.currentSubCellPos.y;
     const endIndex = xEnd + Unit.cellAStarNodeRows * yEnd;
-    console.log('START0', startIndex, endIndex)
+    // console.log('INDEX START', startIndex, 'END', endIndex)
     const startCell = Unit.cellAStarNodes[startIndex]
     const endCell = Unit.cellAStarNodes[endIndex]
+    if (nextCell) {
+      for (let i = 0; i < nextCell.currentUnits.length; i++) {
+        const unit = nextCell.currentUnits[i];
+        const x = unit.currentSubCellPos.x + (xOffset2 * 3)
+        const y = unit.currentSubCellPos.y + (yOffset2 * 3)
+        const obstacleIndex = x + Unit.cellAStarNodeRows * y
+        // console.log(x, y, 'awd2', obstacleIndex, xOffset2, yOffset2)
+        if (obstacleIndex < Unit.cellAStarNodes.length) {
+          Unit.cellAStarNodes[obstacleIndex].isObstacle = true
 
+        }
+      }
+    }
     for (let i = 0; i < cell.currentUnits.length; i++) {
       const unit = cell.currentUnits[i];
       const x = unit.currentSubCellPos.x
       const y = unit.currentSubCellPos.y
       const obstacleIndex = x + Unit.cellAStarNodeRows * y
+      // console.log(x, y, 'awd', obstacleIndex)
       Unit.cellAStarNodes[obstacleIndex].isObstacle = true
     }
 
@@ -201,21 +228,12 @@ export class Unit {
     const subCellPath: false | Position[] = findPath(startCell, endCell)
     restoreAStarNodesClearObstacle(Unit.cellAStarNodes)
 
-    if (subCellPath) {
-      subCellPath.push({ x: this.currentSubCellPos.x, y: this.currentSubCellPos.y })
-    }
-
-
     return { cell, subCellPath }
   }
 
   private static createCellNodes(): AStartCellNodes {
     const nodes: AStartCellNodes = []
-    // const nodes: AStartCellNodes = [
-    //   createAStartNode(0, 0, false), createAStartNode(1, 0, false),
 
-    //   createAStartNode(0, 1, false), createAStartNode(1, 1, false),
-    // ]
     const size = Unit.cellAStarNodeRows * Unit.cellAStarNodeRows
     for (let i = 0; i < size; i++) {
       const x = (i % Unit.cellAStarNodeRows)
@@ -238,7 +256,7 @@ export class Unit {
       endTarget: this.endTarget,
       path: this.path,
       subCellPath: this.subCellPath,
-      target: this.target
+      target: this.target,
     }
   }
   public applySave(save: UnitSave) {

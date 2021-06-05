@@ -96,7 +96,9 @@ export class Viewport extends CanvasCache {
     this.canvas.height = this.getViewportHeight();
     this.canvas.style.top = toPx(UI_TOP_HEIGHT);
     this.canvas.style.bottom = toPx(UI_BOTTOM_HEIGHT);
+    const transform = this.ctx.getTransform()
     this.ctx.setDomMatrix(new DOMMatrix())
+    this.ctx.translate(transform.e, transform.f)
   }
 
 
@@ -135,7 +137,7 @@ export class Viewport extends CanvasCache {
       for (let i = 0; i < this.game.units.length; i++) {
         const unit = this.game.units[i];
         const d = distance(x, y, unit.x, unit.y)
-        if (d < 20) {
+        if (d < 10) {
           selectUnit = true
           unit.selected = true
         } else {
