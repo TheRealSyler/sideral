@@ -1,7 +1,7 @@
 import { TextureCache } from './textureCache';
 import buildPos from './assets/build.png'
 import disabledPos from './assets/disabled.png'
-import { CanvasCache } from './canvasCache';
+import { CanvasCache } from './canvas/canvasCache';
 import { MAP_CELL_SIZE } from './globalConstants';
 import { floor, getTextureOffset } from './utils';
 

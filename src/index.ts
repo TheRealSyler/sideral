@@ -1,9 +1,11 @@
 import './index.sass';
 import { Game } from './game';
-import { generateMap } from './mapGenerator';
+import { generateBattleModeMap, generateMap } from './mapGenerator';
 import { MAP_CELLS_PER_ROW } from './globalConstants';
-import { CanvasViewer } from './canvasViewer';
+import { CanvasViewer } from './canvas/canvasViewer';
 import { FindAStar, MapToAStarNodes } from './aStar';
+import { BattleMode } from './battleMode';
+import { forestMaskGen } from './mapMasks';
 (async () => {
   document.addEventListener('contextmenu', event => event.preventDefault());
   let a = false
@@ -11,8 +13,13 @@ import { FindAStar, MapToAStarNodes } from './aStar';
 
   const seed = 0
   if (a) {
+    new BattleMode()
 
-    new Game(seed)
+    // const size = 32
+    // const viewer = new CanvasViewer(size, 40, 0.4)
+
+    // viewer.drawNumArray(forestMaskGen(0, size, 0.8, 0.7, 4))
+    // new Game(seed)
   } else {
 
     // const s = 64

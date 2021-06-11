@@ -2,7 +2,7 @@ import bakeryTex from './assets/bakery.png'
 import house from './assets/house.png'
 import base from './assets/base.png'
 import { Building, BuildingNames } from './building';
-import { CanvasCache } from './canvasCache';
+import { CanvasCache } from './canvas/canvasCache';
 import { MAP_CELL_SIZE } from './globalConstants';
 import { TextureCache } from './textureCache';
 import { getTextureOffset } from "./utils";

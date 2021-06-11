@@ -3,45 +3,53 @@ import { renderAnimation } from './animation';
 import { AStarNode, MapToAStarNodes } from './aStar';
 import { Building, BuildingInfo, buildingInfo } from "./building";
 import { buildingEndDate, buildingUpgradeEndDate, convertBuildingLevel, getLevelRequirement } from "./buildingFunctions";
+import { Citizen } from './citizen';
 import { MAP_CELL_SIZE, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT, MAP_CELLS_PER_ROW } from "./globalConstants";
 import { Map, MapCell } from "./map"
 import { generateMap } from './mapGenerator';
 import { Minimap } from './minimap';
 import { renderCellBuilding } from "./render";
 import { checkAndSubtractResources, defaultResources } from "./resources";
-import { loadSave, save, Save } from './save';
+import { loadSave, offsetCellDates, save } from './save';
 import { State, GameState } from "./state";
 import { fromNow } from './time';
-import { InitUI } from "./ui";
+import { InitCampaignUI } from "./ui/campaignUI";
 import { Unit } from './unit';
 import { clamp, floor } from "./utils";
-import { Viewport } from './viewport';
+import { CampaignViewport } from './campaignViewport';
 
+export type SelectionMode = 'unit' | 'building';
 
-export type GameMode = 'unit' | 'building';
-
+// TODO split campaign parts into its own class
 export class Game {
   map: Map
-  mapSize = MAP_CELL_SIZE * MAP_CELL_SIZE
-  camera = {
-    speed: 18,
-    move: {
-      up: false,
-      down: false,
-      left: false,
-      right: false
-    }
-  }
+  mapSize = MAP_CELLS_PER_ROW * MAP_CELL_SIZE
 
   state: State<GameState>;
   achievements: Achievements
   aStarNodes: AStarNode[]
 
   units: Unit[]
+  citizens: Citizen[] = [
+    { name: '12', },
+    { name: '23', },
+    { name: '35', },
+    { name: '45', },
+    { name: '56', },
+    { name: '67', },
+    { name: '78', },
+  ]
 
-  mode: GameMode = 'unit'
-  viewport = new Viewport(this)
-  miniMap = new Minimap(this)
+  mode: SelectionMode = 'unit'
+
+  campaign = document.createElement('main') // TODO think of a better name
+  viewport = new CampaignViewport(this)
+  miniMap = new Minimap(this.campaign, UI_BOTTOM_HEIGHT, this.mapSize, (ctx) => {
+    ctx.drawImage(this.viewport.mapTextureCanvas.canvas, 0, 0, UI_BOTTOM_HEIGHT, UI_BOTTOM_HEIGHT)
+    ctx.drawImage(this.viewport.buildingTextureCanvas.canvas, 0, 0, UI_BOTTOM_HEIGHT, UI_BOTTOM_HEIGHT)
+  })
+
+  // battleMode = new BattleMode()
 
   constructor(public seed: number) {
 
@@ -62,7 +70,7 @@ export class Game {
       this.achievements = {}
       this.state = new State<GameState>({
         ...defaultResources,
-        selectedMapChunk: null,
+        selectedMapCell: null,
       })
       this.units = [
         new Unit(this, this.map.cells[2012].position),
@@ -74,22 +82,51 @@ export class Game {
         new Unit(this, this.map.cells[2020].position, 3)
       ]
     }
-
-
-
-    InitUI(this, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT)
-
-    window.addEventListener('keydown', this.keydown);
-    window.addEventListener('keyup', this.keyup);
+    document.body.appendChild(this.campaign)
 
     this.start()
   }
 
   private async start() {
+    window.addEventListener('keydown', this.keydown);
+    window.addEventListener('keyup', this.keyup);
+
     await this.viewport.start()
-    this.update(0)
-    setInterval(this.logicLoop, 250)
+
+    InitCampaignUI(this, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT)
+    this.play()
     setInterval(() => save(this), 1000 * 60)
+  }
+  private updateHandler = -1
+  private logicHandler = -1
+  private pauseTime = -1
+  private lastSelectedMapCell: GameState['selectedMapCell'] = null
+  isPaused = false
+  pause() {
+    this.pauseTime = Date.now()
+    cancelAnimationFrame(this.updateHandler)
+    clearInterval(this.logicHandler)
+    this.isPaused = true
+    this.viewport.canvas.style.pointerEvents = 'none'
+    this.viewport.canvas.style.opacity = '0.5'
+
+    this.lastSelectedMapCell = this.state.get('selectedMapCell')
+    this.state.set('selectedMapCell', null)
+    console.log('PAUSE GAME')
+  }
+
+  play() {
+    this.viewport.canvas.style.pointerEvents = 'unset'
+    this.viewport.canvas.style.opacity = '1'
+
+    this.state.set('selectedMapCell', this.lastSelectedMapCell)
+    console.log('PLAY GAME')
+    if (this.pauseTime >= 0) {
+      offsetCellDates(this.map.cells, Date.now() - this.pauseTime)
+    }
+    this.update(0)
+    this.logicHandler = setInterval(this.logicLoop, 250) as any
+    this.isPaused = false
   }
 
   private logicLoop = async () => {
@@ -127,7 +164,7 @@ export class Game {
 
 
         this.aStarNodes[i].isObstacle = true
-        this.state.resendListeners('selectedMapChunk')
+        this.state.resendListeners('selectedMapCell')
       }
     } else if (remainingTime < time) {
       building.level++;
@@ -139,7 +176,7 @@ export class Game {
 
 
       await renderCellBuilding(new DOMPoint(x, y), this.viewport.buildingTextureCanvas, building)
-      this.state.resendListeners('selectedMapChunk')
+      this.state.resendListeners('selectedMapCell')
     }
   }
 
@@ -154,16 +191,16 @@ export class Game {
         if (!resReq) {
           if (cell.resourceAmount === -1) {
             this.state.setFunc(info.productionType, (v) => v + 1);
-            this.state.resendListeners('selectedMapChunk');
+            this.state.resendListeners('selectedMapCell');
 
           } else if (cell.resourceAmount >= 1) {
             cell.resourceAmount--;
             this.state.setFunc(info.productionType, (v) => v + 1);
-            this.state.resendListeners('selectedMapChunk');
+            this.state.resendListeners('selectedMapCell');
           } else console.log('NO RESOURCES TODO implement warning or something');
 
         } else if (checkAndSubtractResources(this.state, resReq)) {
-          this.state.resendListeners('selectedMapChunk');
+          this.state.resendListeners('selectedMapCell');
           this.state.setFunc(info.productionType, (v) => v + 1);
         } else console.log('NO RESOURCES TODO implement warning or something');
       }
@@ -184,7 +221,7 @@ export class Game {
       this.units[i].update(this.viewport.ctx)
     }
 
-    requestAnimationFrame(this.update)
+    this.updateHandler = requestAnimationFrame(this.update)
   }
 
   private async drawAnimations(delta: number, xStart: number, yStart: number, xEnd: number, yEnd: number) {
@@ -239,16 +276,16 @@ export class Game {
   keydown = (e: KeyboardEvent) => {
     switch (e.key.toUpperCase()) {
       case 'W':
-        this.camera.move.up = true
+        this.viewport.camera.move.up = true
         break;
       case 'S':
-        this.camera.move.down = true
+        this.viewport.camera.move.down = true
         break;
       case 'A':
-        this.camera.move.left = true
+        this.viewport.camera.move.left = true
         break;
       case 'D':
-        this.camera.move.right = true
+        this.viewport.camera.move.right = true
         break;
     }
   }
@@ -256,17 +293,16 @@ export class Game {
   keyup = (e: KeyboardEvent) => {
     switch (e.key.toUpperCase()) {
       case 'W':
-
-        this.camera.move.up = false
+        this.viewport.camera.move.up = false
         break;
       case 'S':
-        this.camera.move.down = false
+        this.viewport.camera.move.down = false
         break;
       case 'A':
-        this.camera.move.left = false
+        this.viewport.camera.move.left = false
         break;
       case 'D':
-        this.camera.move.right = false
+        this.viewport.camera.move.right = false
         break;
     }
   }

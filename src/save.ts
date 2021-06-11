@@ -1,6 +1,6 @@
 import { Achievements } from './achievements';
 import { Game } from './game';
-import { Map } from './map';
+import { Map, MapCell } from './map';
 import { GameState } from './state';
 import { UnitSave } from './unit';
 
@@ -19,14 +19,18 @@ export function loadSave(slot = saveSlot) {
   const rawSave = localStorage.getItem(slot)
   if (rawSave) {
     const save: Save = JSON.parse(rawSave)
-    const timeOffset = Date.now() - save.date
-    save.map.cells.forEach(cell => {
-      if (cell.building) {
-        cell.building.date += timeOffset
-      }
-    })
+
+    offsetCellDates(save.map.cells, Date.now() - save.date);
     return save
   }
+}
+
+export function offsetCellDates(cells: MapCell[], timeOffset: number) {
+  cells.forEach(cell => {
+    if (cell.building) {
+      cell.building.date += timeOffset;
+    }
+  });
 }
 
 export async function save(game: Game, slot = saveSlot) {

@@ -55,8 +55,8 @@ export function islandMaskGen(seed: number, width: number) {
 
   return { mask: out, indices }
 }
-export function forestMaskGen(seed: number, width: number) {
-  const { noise2D } = Perlin({ seed: seed + 10, lacunarity: 12 / width, octaves: 8 })
+export function forestMaskGen(seed: number, width: number, treeThreshold = 0.6, bushThreshold = 0.51, lacunarityBase = 12) {
+  const { noise2D } = Perlin({ seed: seed + 10, lacunarity: lacunarityBase / width, octaves: 8 })
 
   const mapSize = width * width
   const out: number[] = new Array(mapSize)
@@ -68,8 +68,6 @@ export function forestMaskGen(seed: number, width: number) {
     const y = floor((i / width));
     const n = noise(x, y)
 
-    const treeThreshold = 0.6
-    const bushThreshold = 0.51
     const res = n > treeThreshold ? 1 : n > bushThreshold ? 0.5 : 0
     out[i] = res
 

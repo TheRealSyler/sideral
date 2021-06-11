@@ -21,8 +21,7 @@ export function generateMap(width: number, seed: number) {
     let type: MapCell['type'] = 'water'
     let rotation = randomRotation(seed, i);
     if (islandMask[i]) {
-      type = getLandType(oreMask, forestMask, i,);
-
+      type = getLandType(oreMask[i], forestMask[i], i,);
     } else {
       const { newType, newRotation } = makeCoast(islandMask, i, width, seed)
       type = newType
@@ -31,6 +30,44 @@ export function generateMap(width: number, seed: number) {
     map.cells[i] = ({
       building: null,
       resourceAmount: getResourceAmount(type, i),
+      rotation: rotation,
+      type: type,
+      currentUnit: undefined,
+      position: { x: i % MAP_CELLS_PER_ROW, y: floor(i / MAP_CELLS_PER_ROW) }
+    })
+
+    if (cellAmounts[type]) {
+      cellAmounts[type]!++
+    } else {
+      cellAmounts[type] = 1
+    }
+
+  }
+  // console.log(cellAmounts)
+  return map
+}
+export function generateBattleModeMap(width: number, seed: number) {
+
+  const cellAmounts: { [key in MapCellName]?: number } = {}
+
+  const mapSize = width * width
+
+  const forestMask = forestMaskGen(seed, width, 0.8, 0.7, 4)
+  const map: Map = {
+    cells: [], indices: {
+      endIndex: 0,
+      startIndex: 0,
+    }
+  }
+
+  for (let i = 0; i < mapSize; i++) {
+
+    const type = getLandType(0, forestMask[i], i,);
+    const rotation = randomRotation(seed, i);
+
+    map.cells[i] = ({
+      building: null,
+      resourceAmount: 0,
       rotation: rotation,
       type: type,
       currentUnit: undefined,
@@ -96,17 +133,17 @@ function getOreTypes() {
   }
   return oreTypes
 }
-function getLandType(oreMask: number[], forestMask: number[], i: number): MapCellName {
-  if (oreMask[i]) {
-    switch (oreMask[i]) {
+function getLandType(oreMask: number, forestMask: number, i: number): MapCellName {
+  if (oreMask) {
+    switch (oreMask) {
       case 1:
         return 'stone';
       case 0.5:
         return oreTypes[floor(random('oreType' + i)() * oreTypes.length)]
     }
     return 'gras';
-  } else if (forestMask[i]) {
-    switch (forestMask[i]) {
+  } else if (forestMask) {
+    switch (forestMask) {
       case 1:
         return 'forest';
       case 0.5:

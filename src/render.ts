@@ -4,7 +4,7 @@ import terrain from './assets/terrains.png';
 import { renderBuilding } from "./buildingRender";
 import { TextureCache } from "./textureCache";
 import { MAP_CELL_SIZE, MAP_TEXTURE_CHUNKS_PER_ROW } from "./globalConstants";
-import { CanvasCache } from "./canvasCache";
+import { CanvasCache } from "./canvas/canvasCache";
 import { Building } from "./building";
 
 

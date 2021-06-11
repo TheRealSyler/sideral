@@ -1,4 +1,5 @@
 import { AchievementStack } from './achievements';
+import { Citizen } from './citizen';
 import { MapCellName } from "./map";
 import { Resources, ResourceStack } from "./resources";
 
@@ -8,6 +9,7 @@ export interface Building {
   /** started upgrading or extracting a resource */
   date: number // TODO think of a  better name.? maybe
   isUpgrading: boolean;
+  workers: Citizen[]
 }
 
 export const cellBuildings: { [key in MapCellName]?: BuildingNames[] } = {
@@ -26,6 +28,7 @@ interface BaseBuildingInfo {
   constructionTime: number;
   /**build time multiplier per level */
   buildTimeMultiplier: number;
+  workers: number;
   constructionRequirements: ResourceStack;
   constructionAchievements?: AchievementStack;
   upgradeRequirements: LevelRequirement<ResourceStack>;
@@ -63,6 +66,7 @@ export type BuildingLevel = keyof typeof BuildingLevelsEnum
 
 export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
   base: {
+    workers: 2,
     buildTime: 2,
     buildTimeMultiplier: 4.5,
     constructionTime: 1,
@@ -72,6 +76,7 @@ export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
     achievementRequirement: { I: 'Woodcutter I', II: 'Stone Mine I' },
   },
   house: {
+    workers: 1,
     buildTime: 2,
     buildTimeMultiplier: 4.5,
     constructionTime: 2,
@@ -81,6 +86,7 @@ export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
     upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] }
   },
   woodcutter: {
+    workers: 1,
     buildTime: 3,
     buildTimeMultiplier: 2,
     constructionTime: 2,
@@ -97,6 +103,7 @@ export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
     productionType: 'wood',
   },
   "stone mine": {
+    workers: 1,
     buildTime: 3,
     buildTimeMultiplier: 2,
     constructionTime: 2,
@@ -113,6 +120,7 @@ export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
     productionType: 'stone',
   },
   bakery: {
+    workers: 1,
     buildTime: 2,
     buildTimeMultiplier: 4.5,
     constructionTime: 2,
@@ -128,6 +136,7 @@ export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
     upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] },
   },
   "wheat farm": {
+    workers: 1,
     buildTime: 2,
     buildTimeMultiplier: 4.5,
     constructionTime: 2,
@@ -142,6 +151,7 @@ export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
     upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] },
   },
   "wind mill": {
+    workers: 1,
     buildTime: 2,
     buildTimeMultiplier: 4.5,
     constructionTime: 2,
@@ -157,6 +167,7 @@ export const buildingInfo: { [key in BuildingNames]: BuildingInfo } = {
     upgradeRequirements: { I: [{ amount: 10, type: 'wood' }] },
   },
   farm: {
+    workers: 1,
     buildTime: 2,
     buildTimeMultiplier: 4.5,
     constructionTime: 2,

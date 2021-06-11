@@ -1,4 +1,4 @@
-import { clamp, floor } from './utils'
+import { clamp, floor } from '../utils'
 
 export class CanvasViewer {
   canvas = document.createElement('canvas')

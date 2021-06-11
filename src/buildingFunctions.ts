@@ -3,6 +3,7 @@ import { fromNow } from "./time";
 
 export function newBuilding(type: BuildingNames): Building {
   return {
+    workers: [],
     date: Date.now(),
     isUpgrading: true,
     level: -1,
