@@ -39,9 +39,14 @@ export interface MapCell {
 }
 
 
-export type SimpleMap = {
-  cells: MapCell[],
-  indices: { startIndex: number, endIndex: number }
+export interface Indices {
+  startIndex: number;
+  endIndex: number;
+}
+
+export type GameMap<T extends MapCell> = {
+  cells: T[],
+  indices: Indices
 }
 
 

@@ -67,14 +67,13 @@ function bottomUI(game: Campaign) {
   const cellBuilding = <div className="building-cards"> </div>;
 
   const upgradeTimeLeftEvent = 'upgrade-time';
-  game.state.addListener('selectedMapCell', (selectedPos) => {
+  game.state.addListener('selectedMapCell', (cell) => {
     uiEvents.remove(upgradeTimeLeftEvent)
     cellIcon.innerHTML = ''
     cellBuilding.innerHTML = ''
     cellName.textContent = ''
     cellResourcesAmount.textContent = ''
-    if (selectedPos) {
-      const { cell } = selectedPos;
+    if (cell) {
       cellIcon.appendChild(getCellIcon(cell.type))
       cellName.textContent = cell.type;
       cellResourcesAmount.textContent = cell.resourceAmount === -1 ?

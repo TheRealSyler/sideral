@@ -1,5 +1,5 @@
 import { floor, getTextureOffset } from "./utils";
-import { SimpleMap, MapCell, MapCellTexturePos } from './map'
+import { Indices, MapCell, MapCellTexturePos } from './map'
 import terrain from './assets/terrains.png';
 import { renderBuilding } from "./buildingRender";
 import { TextureCache } from "./textureCache";

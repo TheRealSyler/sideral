@@ -1,4 +1,4 @@
-import { GameState, State } from './state';
+import { CampaignState, State } from './state';
 
 export enum ResourcesEnum {
   wood,
@@ -32,7 +32,7 @@ export type ResourceStack = {
 }[];
 
 
-export function checkAndSubtractResources(state: State<GameState>, requiredResources: ResourceStack) {
+export function checkAndSubtractResources(state: State<CampaignState>, requiredResources: ResourceStack) {
   for (let i = 0; i < requiredResources.length; i++) {
     const resource = requiredResources[i];
     const stateResource = state.get(resource.type)

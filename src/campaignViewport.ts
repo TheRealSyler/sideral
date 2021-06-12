@@ -92,8 +92,8 @@ export class CampaignViewport extends Viewport {
 
       const selectedPos = this.game.state.get('selectedMapCell')
       if (selectedPos) {
-        const x2 = selectedPos.cell.position.x * MAP_CELL_SIZE
-        const y2 = selectedPos.cell.position.y * MAP_CELL_SIZE
+        const x2 = selectedPos.position.x * MAP_CELL_SIZE
+        const y2 = selectedPos.position.y * MAP_CELL_SIZE
         this.ctx.beginPath();
         this.ctx.strokeStyle = '#f00'
         this.ctx.moveTo(x2, y2);
@@ -117,9 +117,7 @@ export class CampaignViewport extends Viewport {
   private mousemove = (e: MouseEvent) => {
 
     if (this.canDrag) {
-      if (!this.dragCursorLock) {
-        this.showHover = false
-      }
+      this.showHover = false
     } else if (this.selectionDrag) {
 
       if (this.selectionStart) {
@@ -186,7 +184,7 @@ export class CampaignViewport extends Viewport {
         this.game.mode = 'building'
         if (x >= 0 && x < this.game.mapSize && y >= 0 && y < this.game.mapSize) {
           const index = x2 + MAP_CELLS_PER_ROW * y2;
-          this.game.state.set('selectedMapCell', { cell: this.game.map.cells[index] })
+          this.game.state.set('selectedMapCell', this.game.map.cells[index])
         }
       }
     }

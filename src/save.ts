@@ -1,14 +1,15 @@
 import { Achievements } from './achievements';
 import { Building } from './building';
-import { Campaign, CampaignMap } from './campaign';
-import { GameState } from './state';
+import { Campaign, CampaignCell } from './campaign';
+import { GameMap } from './map';
+import { CampaignState } from './state';
 import { UnitSave } from './unit';
 
 export interface CampaignSave {
-  map: CampaignMap
+  map: GameMap<CampaignCell>
   achievements: Achievements
   date: number,
-  state: GameState,
+  state: CampaignState,
   units: UnitSave[]
 }
 

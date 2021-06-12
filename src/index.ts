@@ -15,12 +15,12 @@ import { setUIVariables } from './ui/setUIVariables';
 
   const seed = 0
   if (a) {
-    new Battlemode()
 
     // const size = 32
     // const viewer = new CanvasViewer(size, 40, 0.4)
 
     // viewer.drawNumArray(forestMaskGen(0, size, 0.8, 0.7, 4))
+    new Battlemode()
     // new Game(seed)
 
   } else {

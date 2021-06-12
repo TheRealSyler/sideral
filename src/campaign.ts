@@ -5,13 +5,13 @@ import { Building, BuildingInfo, buildingInfo } from "./building";
 import { buildingEndDate, buildingUpgradeEndDate, convertBuildingLevel, getLevelRequirement } from "./buildingFunctions";
 import { Citizen } from './citizen';
 import { MAP_CELL_SIZE, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT, MAP_CELLS_PER_ROW } from "./globalConstants";
-import { SimpleMap, MapCell } from "./map"
+import { GameMap, MapCell } from "./map"
 import { generateMap } from './mapGenerator';
 import { Minimap } from './minimap';
 import { renderCellBuilding } from "./render";
 import { checkAndSubtractResources, defaultResources } from "./resources";
 import { CampaignSave, offsetCellDates, saveCampaign } from './save';
-import { State, GameState } from "./state";
+import { State, CampaignState } from "./state";
 import { fromNow } from './time';
 import { InitCampaignUI } from "./ui/campaignUI";
 import { Unit } from './unit';
@@ -20,10 +20,7 @@ import { CampaignViewport } from './campaignViewport';
 
 export type SelectionMode = 'unit' | 'building';
 
-export interface CampaignMap {
-  cells: CampaignCell[]
-  indices: SimpleMap['indices']
-}
+
 
 export interface CampaignCell extends MapCell {
   resourceAmount: number
@@ -32,11 +29,11 @@ export interface CampaignCell extends MapCell {
 }
 
 export class Campaign {
-  map: CampaignMap
+  map: GameMap<CampaignCell>
 
   mapSize = MAP_CELLS_PER_ROW * MAP_CELL_SIZE
 
-  state: State<GameState>;
+  state: State<CampaignState>;
   achievements: Achievements
   aStarNodes: AStarNode[]
 
@@ -67,7 +64,7 @@ export class Campaign {
 
       this.aStarNodes = MapToAStarNodes(this.map.cells, MAP_CELLS_PER_ROW)
       this.achievements = save.achievements
-      this.state = new State<GameState>(save.state)
+      this.state = new State<CampaignState>(save.state)
       this.units = save.units.map(save => {
         const newUnit = new Unit(this, save.cellPosition)
         newUnit.applySave(save)
@@ -78,7 +75,7 @@ export class Campaign {
       this.map = generateMap(MAP_CELLS_PER_ROW, this.seed)
       this.aStarNodes = MapToAStarNodes(this.map.cells, MAP_CELLS_PER_ROW)
       this.achievements = {}
-      this.state = new State<GameState>({
+      this.state = new State<CampaignState>({
         ...defaultResources,
         selectedMapCell: null,
       })
@@ -115,7 +112,7 @@ export class Campaign {
   private updateHandler = -1
   private logicHandler = -1
   private pauseTime = -1
-  private lastSelectedMapCell: GameState['selectedMapCell'] = null
+  private lastSelectedMapCell: CampaignState['selectedMapCell'] = null
   isPaused = false
   pause() {
     this.pauseTime = Date.now()

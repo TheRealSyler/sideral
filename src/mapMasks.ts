@@ -1,6 +1,6 @@
 import { Perlin } from './noise'
 import random from 'seedrandom'
-import { SimpleMap } from './map';
+import { Indices } from './map';
 import { distance, distanceToEllipse, map, clamp, degToRad, floor } from './utils'
 
 
@@ -48,7 +48,7 @@ export function islandMaskGen(seed: number, width: number) {
     if (res > resThreshold && y > boundingBox.yEnd) boundingBox.yEnd = y
 
   }
-  const indices: SimpleMap['indices'] = {
+  const indices: Indices = {
     startIndex: (boundingBox.x - 1) + width * (boundingBox.y - 1),
     endIndex: (boundingBox.xEnd + 1) + width * (boundingBox.yEnd + 1),
   }

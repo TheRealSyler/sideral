@@ -1,9 +1,10 @@
-import { SimpleMap, MapCell, MapCellName } from './map';
+import { GameMap, MapCell, MapCellName } from './map';
 import { degToRad, floor } from './utils';
 import random from 'seedrandom'
 import { islandMaskGen, forestMaskGen, oreMaskGen } from './mapMasks';
 import { MAP_CELLS_PER_ROW } from './globalConstants';
-import { Campaign, CampaignMap } from './campaign';
+import { CampaignCell } from './campaign';
+import { BattlemodeCell } from './battlemode';
 
 
 export function generateMap(width: number, seed: number) {
@@ -15,7 +16,7 @@ export function generateMap(width: number, seed: number) {
   const { mask: islandMask, indices } = islandMaskGen(seed, width)
   const forestMask = forestMaskGen(seed, width)
   const oreMask = oreMaskGen(seed, width, islandMask)
-  const map: CampaignMap = { cells: [], indices }
+  const map: GameMap<CampaignCell> = { cells: [], indices }
 
   for (let i = 0; i < mapSize; i++) {
 
@@ -54,7 +55,7 @@ export function generateBattleModeMap(width: number, seed: number) {
   const mapSize = width * width
 
   const forestMask = forestMaskGen(seed, width, 0.8, 0.7, 4)
-  const map: SimpleMap = {
+  const map: GameMap<BattlemodeCell> = {
     cells: [], indices: {
       endIndex: 0,
       startIndex: 0,
