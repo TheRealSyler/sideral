@@ -14,6 +14,17 @@ export class Viewport extends CanvasCache {
     }
   }
 
+  private bounds: ViewportBounds = {
+    top: 0,
+    left: 0,
+    right: 10000,
+    bottom: 10000,
+  }
+
+  setBounds(bounds: ViewportBounds) {
+    this.bounds = bounds
+  }
+
   protected lastX = 0
   protected lastY = 0;
   protected canDrag = false
@@ -112,26 +123,29 @@ export class Viewport extends CanvasCache {
   }
 
   private zoom = (clicks: number) => {
-    // TODO refine zoom function, right now this function only approximates the zoom limits.
-    const transform = this.ctx.getTransform()
-    const scale = transform.a
-
+    const scale = this.ctx.getTransform().a
     const factor = Math.pow(this.options.zoomScaleFactor, clicks);
-    if (scale < this.options.zoomMaxScale && factor > 1 || scale > this.options.zoomMinScale && factor < 1) {
 
-      const pt = this.ctx.transformedPoint(this.lastX, this.lastY);
+    const scaledScale = scale * factor;
+    const maxWidth = (this.bounds.right - this.bounds.left);
+    const maxHeight = (this.bounds.bottom - this.bounds.top);
+    const maxScale = Math.max(
+      this.canvas.width / maxWidth,
+      this.canvas.height / maxHeight
+    );
 
-      this.ctx.translate(pt.x, pt.y);
+    const pt = this.ctx.transformedPoint(this.lastX, this.lastY);
 
-      this.ctx.scale(factor, factor);
+    this.ctx.translate(pt.x, pt.y);
+    const { b, c, e, f } = this.ctx.getTransform()
 
-      this.ctx.translate(-pt.x, -pt.y);
-      // clamp position
-      const { a, b, c, d, e, f } = this.ctx.getTransform()
-      let x = clamp(e, this.options.boundaryPadding, this.options.getMaxXPos(a))
-      let y = clamp(f, this.options.boundaryPadding, this.options.getMaxYPos(a))
-      this.ctx.setTransform(a, b, c, d, x, y)
-    }
+    const newScale = clamp(scaledScale, this.options.zoomMaxScale, maxScale)
+    this.ctx.setTransform(newScale, b, c, newScale, e, f)
+
+    this.ctx.translate(-pt.x, -pt.y);
+
+
+
   }
 
   private handleScroll = (evt: any) => {
@@ -235,5 +249,11 @@ interface ViewportOptions {
   boundaryPadding: number,
   zoomScaleFactor: number,
   zoomMaxScale: number
-  zoomMinScale: number
+}
+
+interface ViewportBounds {
+  top: number
+  left: number
+  right: number
+  bottom: number
 }
