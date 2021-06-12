@@ -1,8 +1,9 @@
-import { Map, MapCell, MapCellName } from './map';
+import { SimpleMap, MapCell, MapCellName } from './map';
 import { degToRad, floor } from './utils';
 import random from 'seedrandom'
 import { islandMaskGen, forestMaskGen, oreMaskGen } from './mapMasks';
 import { MAP_CELLS_PER_ROW } from './globalConstants';
+import { Campaign, CampaignMap } from './campaign';
 
 
 export function generateMap(width: number, seed: number) {
@@ -14,7 +15,7 @@ export function generateMap(width: number, seed: number) {
   const { mask: islandMask, indices } = islandMaskGen(seed, width)
   const forestMask = forestMaskGen(seed, width)
   const oreMask = oreMaskGen(seed, width, islandMask)
-  const map: Map = { cells: [], indices }
+  const map: CampaignMap = { cells: [], indices }
 
   for (let i = 0; i < mapSize; i++) {
 
@@ -30,9 +31,9 @@ export function generateMap(width: number, seed: number) {
     map.cells[i] = ({
       building: null,
       resourceAmount: getResourceAmount(type, i),
+      currentUnit: undefined,
       rotation: rotation,
       type: type,
-      currentUnit: undefined,
       position: { x: i % MAP_CELLS_PER_ROW, y: floor(i / MAP_CELLS_PER_ROW) }
     })
 
@@ -53,7 +54,7 @@ export function generateBattleModeMap(width: number, seed: number) {
   const mapSize = width * width
 
   const forestMask = forestMaskGen(seed, width, 0.8, 0.7, 4)
-  const map: Map = {
+  const map: SimpleMap = {
     cells: [], indices: {
       endIndex: 0,
       startIndex: 0,
@@ -66,11 +67,8 @@ export function generateBattleModeMap(width: number, seed: number) {
     const rotation = randomRotation(seed, i);
 
     map.cells[i] = ({
-      building: null,
-      resourceAmount: 0,
       rotation: rotation,
       type: type,
-      currentUnit: undefined,
       position: { x: i % MAP_CELLS_PER_ROW, y: floor(i / MAP_CELLS_PER_ROW) }
     })
 

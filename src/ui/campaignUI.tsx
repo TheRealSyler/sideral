@@ -5,22 +5,20 @@ import { buildingInfo, cellBuildings, } from "../building";
 import { fromNow } from "../time";
 import { UiEvents } from "../uiEvents";
 import { buildingUpgradeEndDate, buildingEndDate } from "../buildingFunctions";
-import { deleteSave, save } from '../save';
+import { deleteSave, saveCampaign } from '../save';
 import { getCellIcon, getResourceIcon } from '../icons';
-import { MAP_CELL_ICON_SIZE } from '../globalConstants';
-import { Game } from '../game';
 import { manageCitizens } from './manageCitizens';
 import { buildingCard } from './buildingCard';
+import { Campaign } from '../campaign';
+import { TopUI } from './topUI';
+import { BottomUI } from './bottomUI';
 
-export function InitCampaignUI(game: Game, topHeight: number, bottomHeight: number) {
-  document.body.style.setProperty('--bottom-height', toPx(bottomHeight))
-  document.body.style.setProperty('--cell-icon-size', toPx(MAP_CELL_ICON_SIZE))
-
-  game.campaign.appendChild(topUI(game, topHeight))
-  game.campaign.appendChild(bottomUI(game, bottomHeight))
+export function InitCampaignUI(game: Campaign) {
+  game.main.appendChild(topUI(game))
+  game.main.appendChild(bottomUI(game))
 }
 
-function topUI(game: Game, topHeight: number) {
+function topUI(game: Campaign) {
   const elements: HTMLSpanElement[] = []
   for (const key in defaultResources) {
     if (Object.prototype.hasOwnProperty.call(defaultResources, key)) {
@@ -33,7 +31,8 @@ function topUI(game: Game, topHeight: number) {
     }
   }
   const playPauseText = <span>Pause</span>
-  const top = <div className="ui-top">
+
+  return <TopUI>
     <div className="ui-top-resources">{elements}</div>
     <div className="ui-top-resources">
 
@@ -50,20 +49,17 @@ function topUI(game: Game, topHeight: number) {
         location.reload()
       }}>Delete Save And Reload</button>
       <button className="button button-no-height" onClick={() => {
-        save(game)
+        saveCampaign(game)
       }}>Save</button>
       <button className="button button-no-height" onClick={() => {
         location.reload()
       }}>Reload</button>
 
     </div>
-  </div>;
-
-  top.style.height = toPx(topHeight);
-  return top
+  </TopUI>
 }
 
-function bottomUI(game: Game, bottomHeight: number,) {
+function bottomUI(game: Campaign) {
   const uiEvents = new UiEvents()
   const cellName = <span > </span>;
   const cellIcon = <div className="cell-icon"></div>;
@@ -112,7 +108,7 @@ function bottomUI(game: Game, bottomHeight: number,) {
         if (availableBuildings) {
           for (let i = 0; i < availableBuildings.length; i++) {
             const buildingName = availableBuildings[i];
-            cellBuilding.appendChild(buildingCard(game, buildingName, 3, cell,))
+            cellBuilding.appendChild(buildingCard(game, buildingName, 3, cell))
           }
         }
       }
@@ -120,7 +116,8 @@ function bottomUI(game: Game, bottomHeight: number,) {
     }
   });
 
-  const bottom = <div className="ui-bottom" style={{ height: bottomHeight }}>
+
+  return <BottomUI>
     <div className="cell">
       <div className="cell-name">
         {cellName}
@@ -132,13 +129,7 @@ function bottomUI(game: Game, bottomHeight: number,) {
 
     {cellBuilding}
 
-  </div>;
-
-  bottom.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    bottom.scrollLeft += e.deltaY
-  })
-  return bottom
+  </BottomUI>
 }
 
 

@@ -1,13 +1,14 @@
 import { findPath, restoreAStarNodes } from './aStar';
 import { CanvasCache } from './canvas/canvasCache';
-import { Game, SelectionMode } from './game';
 
-import { MAP_CELL_SIZE, MAP_MOVE_FACTOR, MAP_PADDING, ZOOM_SCALE_FACTOR, ZOOM_MAX_SCALE, ZOOM_MIN_SCALE, UI_BOTTOM_HEIGHT, UI_TOP_HEIGHT, MAP_CELLS_PER_ROW } from './globalConstants';
+import { MAP_CELL_SIZE, MAP_MOVE_FACTOR, MAP_PADDING, ZOOM_SCALE_FACTOR, ZOOM_MAX_SCALE, UI_BOTTOM_HEIGHT, UI_TOP_HEIGHT, MAP_CELLS_PER_ROW } from './globalConstants';
 import { Position } from './interfaces';
 import { render } from './render';
 
 import { floor, toPx } from './utils';
 import { Viewport } from './canvas/viewport';
+import { Campaign, SelectionMode } from './campaign';
+import { renderBuilding } from './buildingRender';
 
 export class CampaignViewport extends Viewport {
 
@@ -22,17 +23,23 @@ export class CampaignViewport extends Viewport {
 
   selectionDrag = false
 
-  constructor(private game: Game) {
+  constructor(private game: Campaign) {
     super('Campaign Viewport Canvas', {
       getMaxXPos: (scale: number) => this.getViewportWidth() - (this.game.mapSize * scale) - MAP_PADDING,
       getMaxYPos: (scale: number) => this.getViewportHeight() - (this.game.mapSize * scale) - MAP_PADDING,
       moveFactor: MAP_MOVE_FACTOR,
       boundaryPadding: MAP_PADDING,
       zoomMaxScale: ZOOM_MAX_SCALE,
-      zoomMinScale: ZOOM_MIN_SCALE,
       zoomScaleFactor: ZOOM_SCALE_FACTOR
     })
-    game.campaign.appendChild(this.canvas)
+
+    this.setBounds({
+      bottom: this.game.mapSize - (this.game.mapSize / 2),
+      right: this.game.mapSize - (this.game.mapSize / 2),
+      left: 0,
+      top: 0
+    })
+    game.main.appendChild(this.canvas)
     this.canvas.className = 'map';
     window.addEventListener('resize', this.resize);
   }
@@ -46,7 +53,12 @@ export class CampaignViewport extends Viewport {
     })
     // don't change the order of the function calls.
     this.resize()
-    await render(this.mapTextureCanvas, this.buildingTextureCanvas, this.game.map, MAP_CELLS_PER_ROW)
+    await render(this.mapTextureCanvas, this.game.map.cells, MAP_CELLS_PER_ROW, async (i, x, y) => {
+      const cell = this.game.map.cells[i]
+      if (cell.building) {
+        this.buildingTextureCanvas.ctx.drawImage(await renderBuilding(cell.building), x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
+      }
+    })
 
     this.ctx.translate((-this.game.mapSize + this.canvas.width) / 2, (-this.game.mapSize + this.canvas.height) / 2)
   }
@@ -80,8 +92,8 @@ export class CampaignViewport extends Viewport {
 
       const selectedPos = this.game.state.get('selectedMapCell')
       if (selectedPos) {
-        const x2 = selectedPos.x * MAP_CELL_SIZE
-        const y2 = selectedPos.y * MAP_CELL_SIZE
+        const x2 = selectedPos.cell.position.x * MAP_CELL_SIZE
+        const y2 = selectedPos.cell.position.y * MAP_CELL_SIZE
         this.ctx.beginPath();
         this.ctx.strokeStyle = '#f00'
         this.ctx.moveTo(x2, y2);
@@ -173,7 +185,8 @@ export class CampaignViewport extends Viewport {
       } else {
         this.game.mode = 'building'
         if (x >= 0 && x < this.game.mapSize && y >= 0 && y < this.game.mapSize) {
-          this.game.state.set('selectedMapCell', { cell: this.game.map.cells[x2 + MAP_CELLS_PER_ROW * y2], x: x2, y: y2 })
+          const index = x2 + MAP_CELLS_PER_ROW * y2;
+          this.game.state.set('selectedMapCell', { cell: this.game.map.cells[index] })
         }
       }
     }

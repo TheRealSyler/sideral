@@ -1,5 +1,5 @@
+import { CampaignCell } from './campaign';
 import { Position } from './interfaces';
-import { Map } from './map';
 import { floor } from './utils';
 
 export interface AStarNode {
@@ -100,14 +100,14 @@ function aStarHeuristic(a: AStarNode, b: AStarNode) {
   return aStarDistance(a, b);
 };
 
-export function MapToAStarNodes(map: Map, width: number,) {
+export function MapToAStarNodes(cells: CampaignCell[], width: number) {
   const nodes: AStarNode[] = []
 
   const size = width * width
   for (let i = 0; i < size; i++) {
     const x = (i % width)
     const y = floor((i / width))
-    const cell = map.cells[i]
+    const cell = cells[i]
     const node = createAStartNode(x, y, cell.type !== 'gras' || !!cell.building)
     nodes[i] = node;
     addAStarNodeNeighbors(i, width, nodes, node);

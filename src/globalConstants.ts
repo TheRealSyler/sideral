@@ -1,3 +1,5 @@
+// TODO remove constants, at least some like MAP_CELLS_PER_ROW
+
 /**The amount of cells in map per row*/
 export const MAP_CELLS_PER_ROW = 64
 /**How many textures are there per row in map image(loaded from disk aka terrains.png) */

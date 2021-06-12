@@ -1,5 +1,5 @@
 import { floor, getTextureOffset } from "./utils";
-import { Map, MapCellTexturePos } from './map'
+import { SimpleMap, MapCell, MapCellTexturePos } from './map'
 import terrain from './assets/terrains.png';
 import { renderBuilding } from "./buildingRender";
 import { TextureCache } from "./textureCache";
@@ -12,12 +12,13 @@ const textureCache = new TextureCache({ terrain: terrain })
 
 const mapCellCanvas = new CanvasCache(MAP_CELL_SIZE, 'Map Cell Render Canvas')
 
-export async function render(mapCanvas: CanvasCache, buildingCanvas: CanvasCache, map: Map, width: number) {
+export async function render(mapCanvas: CanvasCache, mapCells: MapCell[], width: number, additional?: (i: number, x: number, y: number) => Promise<void>) {
 
   const img = await textureCache.getTexture('terrain')
+  const func = additional ? additional : () => undefined
+  for (let i = 0; i < mapCells.length; i++) {
+    const cell = mapCells[i];
 
-  for (let i = 0; i < map.cells.length; i++) {
-    const cell = map.cells[i];
     const rawX = (i % width)
     const rawY = floor((i / width))
     const x = rawX * MAP_CELL_SIZE
@@ -32,10 +33,8 @@ export async function render(mapCanvas: CanvasCache, buildingCanvas: CanvasCache
     mapCellCanvas.ctx.resetTransform()
 
     mapCanvas.ctx.drawImage(mapCellCanvas.canvas, x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
+    await func(i, x, y)
 
-    if (cell.building) {
-      buildingCanvas.ctx.drawImage(await renderBuilding(cell.building), x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
-    }
   }
 }
 

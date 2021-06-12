@@ -1,20 +1,22 @@
 import { CanvasCache } from './canvas/canvasCache'
 import { Viewport } from './canvas/viewport'
-import { MAP_PADDING, MAP_MOVE_FACTOR, ZOOM_SCALE_FACTOR, MAP_CELL_SIZE } from './globalConstants'
+import { MAP_PADDING, MAP_MOVE_FACTOR, ZOOM_SCALE_FACTOR, MAP_CELL_SIZE, UI_BOTTOM_HEIGHT, UI_TOP_HEIGHT } from './globalConstants'
 import { generateBattleModeMap } from './mapGenerator'
 import { Minimap } from './minimap'
 import { render } from './render'
+import { InitBattlemodeUI } from './ui/battlemodeUI'
+import { toPx } from './utils'
 
-export class BattleMode extends Viewport {
+export class Battlemode extends Viewport {
   private cellRows = 32
   main = document.createElement('main')
   mapSize = this.cellRows * MAP_CELL_SIZE
-  minimap = new Minimap(this.main, 200, this.mapSize, (ctx) => {
-    ctx.drawImage(this.mapTextureCanvas.canvas, 0, 0, 200, 200)
+  minimap = new Minimap(this.main, UI_BOTTOM_HEIGHT, this.mapSize, (ctx) => {
+    ctx.drawImage(this.mapTextureCanvas.canvas, 0, 0, UI_BOTTOM_HEIGHT, UI_BOTTOM_HEIGHT)
   })
   public mapTextureCanvas = new CanvasCache(this.mapSize, 'Map Texture Canvas 2')
 
-  private getViewportHeight = () => window.innerHeight
+  private getViewportHeight = () => window.innerHeight - (UI_TOP_HEIGHT + UI_BOTTOM_HEIGHT)
   private getViewportWidth = () => window.innerWidth
 
   private map = generateBattleModeMap(this.cellRows, this.seed)
@@ -25,25 +27,36 @@ export class BattleMode extends Viewport {
       moveFactor: MAP_MOVE_FACTOR,
       boundaryPadding: 0,
       zoomMaxScale: 3,
-      zoomMinScale: 0.8,
       zoomScaleFactor: ZOOM_SCALE_FACTOR
+    })
+
+    this.setBounds({
+      bottom: this.mapSize - (this.mapSize / 4),
+      right: this.mapSize - (this.mapSize / 4),
+      left: 0,
+      top: 0
     })
     document.body.appendChild(this.main)
     this.main.appendChild(this.canvas)
     this.canvas.className = 'map';
-
+    window.addEventListener('resize', this.resize);
     this.start()
+
+
   }
 
   async start() {
     this.resize()
+    InitBattlemodeUI(this)
     this.update(0)
-    await render(this.mapTextureCanvas, new CanvasCache(this.mapSize, 'Building Texture Canvas 2'), this.map, this.cellRows)
+    await render(this.mapTextureCanvas, this.map.cells, this.cellRows)
   }
 
   private resize = () => {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    this.canvas.width = this.getViewportWidth();
+    this.canvas.height = this.getViewportHeight();
+    this.canvas.style.top = toPx(UI_TOP_HEIGHT);
+    this.canvas.style.bottom = toPx(UI_BOTTOM_HEIGHT);
     this._resize()
   }
 

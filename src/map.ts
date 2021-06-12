@@ -35,13 +35,11 @@ export type MapCellName = keyof typeof MapCellTexturePos
 export interface MapCell {
   type: MapCellName,
   rotation: number,
-  resourceAmount: number
-  building: Building | null,
-  currentUnit?: Unit,
   position: Position
 }
 
-export type Map = {
+
+export type SimpleMap = {
   cells: MapCell[],
   indices: { startIndex: number, endIndex: number }
 }

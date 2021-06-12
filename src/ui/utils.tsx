@@ -5,6 +5,10 @@ import { displaySeconds } from "../time";
 import { getLevelRequirement, buildingFormula } from "../buildingFunctions";
 import { getResourceIcon } from '../icons';
 
+export interface Props {
+  children?: any
+}
+
 type displayResourceStuffArgs = {
   info: BuildingInfo;
   opacity: number;
@@ -30,7 +34,7 @@ export function displayResourceStuff({ info, opacity, isAlreadyBuilt, levelName,
       </div>
       {resourceProdReq && <div className="building-card-column" style={{ opacity }}>
         Uses
-          {resourceArray(resourceProdReq)}
+        {resourceArray(resourceProdReq)}
       </div>}
     </Fragment>;
   }

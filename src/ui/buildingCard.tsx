@@ -6,15 +6,15 @@ import { displaySeconds } from "../time";
 import { newBuilding, getLevelRequirement, convertBuildingLevel, buildingUpgradeFormula, buildingFormula } from "../buildingFunctions";
 import { checkAchievementRequirement } from '../achievements';
 import { getBuildingIcon } from '../icons';
-import { Game } from '../game';
 import { manageCitizens } from './manageCitizens';
 import { resourceArray, flattenArray, displayResourceStuff } from "./utils";
+import { CampaignCell, Campaign } from '../campaign';
 
 export function buildingCard(
-  game: Game,
+  game: Campaign,
   buildingName: BuildingNames,
   level: number,
-  cell: MapCell,
+  cell: CampaignCell,
   building?: Building,
   upgradeTime?: HTMLSpanElement,
   prodTime?: HTMLSpanElement) {
@@ -63,7 +63,7 @@ export function buildingCard(
       </div>}
       {isAlreadyBuilt && productionTimeReduction && <div className="building-card-column" style={{ opacity }}>
         Next Level
-          <span>{productionTimeReduction}</span>
+        <span>{productionTimeReduction}</span>
       </div>}
       {building && isAlreadyBuilt ? <button className="button" onClick={() => manageCitizens(game.citizens, building)}>Manage</button> : null}
 

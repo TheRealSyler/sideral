@@ -5,6 +5,7 @@ import { MapCell } from './map'
 
 import { Game } from './game';
 import { findPath } from './aStar';
+import { CampaignCell, Campaign } from './campaign';
 
 export interface UnitSave {
   x: number;
@@ -15,6 +16,8 @@ export interface UnitSave {
   cellPosition: Position
   speed: number,
 }
+
+
 export class Unit {
   public x: number;
   public y: number;
@@ -23,13 +26,14 @@ export class Unit {
   public endTarget: Position
   public selected = false
 
-  currentCell: MapCell;
+  currentCell: CampaignCell;
 
   private static readonly MAP_CELL_HALF_SIZE = (MAP_CELL_SIZE / 2);
 
-  constructor(private game: Game, cellPosition: Position, public speed = 0.4) {
+  constructor(private game: Campaign, cellPosition: Position, public speed = 0.4) {
     const index = cellPosition.x + MAP_CELLS_PER_ROW * cellPosition.y;
     const cell = game.map.cells[index]
+
     cell.currentUnit = this
     game.aStarNodes[index].isObstacle = true
     this.x = cell.position.x * MAP_CELL_SIZE + Unit.MAP_CELL_HALF_SIZE

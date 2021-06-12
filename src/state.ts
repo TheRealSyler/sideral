@@ -1,4 +1,4 @@
-import { MapCell } from "./map";
+import { CampaignCell } from './campaign';
 import { Resources } from "./resources";
 
 export class State<State extends { [key: string]: any }> {
@@ -36,6 +36,6 @@ export class State<State extends { [key: string]: any }> {
 }
 
 export interface GameState extends Resources {
-  selectedMapCell: null | { cell: MapCell, x: number, y: number }
+  selectedMapCell: null | { cell: CampaignCell }
 }
 

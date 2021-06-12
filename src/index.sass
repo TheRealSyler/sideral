@@ -13,6 +13,9 @@ body
   --text-disabled: #aaa
   --bottom-height: 0px
   --cell-icon-size: 0px
+  --top-height: 20px
+  --bottom-height: 20px
+
   background: var(--bg)
   color: var(--text)
   font-family: Roboto, monospace
@@ -25,6 +28,7 @@ body
 
 .ui
   &-top
+    height: var(--top-height)
     position: fixed
     z-index: 1
     top: 0
@@ -43,6 +47,7 @@ body
     position: fixed
     z-index: 1
     bottom: 0
+    height: var(--bottom-height)
     right: var(--bottom-height)
     left: 0
     box-sizing: border-box

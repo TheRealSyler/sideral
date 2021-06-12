@@ -1,11 +1,11 @@
 import { Achievements } from './achievements';
-import { Game } from './game';
-import { Map, MapCell } from './map';
+import { Building } from './building';
+import { Campaign, CampaignMap } from './campaign';
 import { GameState } from './state';
 import { UnitSave } from './unit';
 
-export interface Save {
-  map: Map
+export interface CampaignSave {
+  map: CampaignMap
   achievements: Achievements
   date: number,
   state: GameState,
@@ -14,18 +14,17 @@ export interface Save {
 
 const saveSlot = 'saveTest'
 
-export function loadSave(slot = saveSlot) {
+export function loadCampaignSave(slot = saveSlot) {
   console.log('Load Game Save from Slot:', slot)
   const rawSave = localStorage.getItem(slot)
   if (rawSave) {
-    const save: Save = JSON.parse(rawSave)
+    const save: CampaignSave = JSON.parse(rawSave)
 
     offsetCellDates(save.map.cells, Date.now() - save.date);
     return save
   }
 }
-
-export function offsetCellDates(cells: MapCell[], timeOffset: number) {
+export function offsetCellDates(cells: { building: Building | null }[], timeOffset: number) {
   cells.forEach(cell => {
     if (cell.building) {
       cell.building.date += timeOffset;
@@ -33,19 +32,21 @@ export function offsetCellDates(cells: MapCell[], timeOffset: number) {
   });
 }
 
-export async function save(game: Game, slot = saveSlot) {
+export async function saveCampaign(game: Campaign, slot = saveSlot, saveToLocalStorage = true) {
   console.log('Saved Game to Slot:', slot)
-  const save: Save = {
+  const map = game.map
+
+  const save: CampaignSave = {
     date: Date.now(),
-    map: { cells: game.map.cells.map((cell) => ({ ...cell, currentUnit: undefined })), indices: game.map.indices },
+    map: { ...map, cells: map.cells.map((cell) => ({ ...cell, currentUnit: undefined })) },
     achievements: game.achievements,
     state: game.state.getState(),
-    units: game.units.map((unit) => unit.save())
+    units: game.units.map((unit) => unit.save()),
   }
-
-
-  localStorage.setItem(slot, JSON.stringify(save))
-
+  if (saveToLocalStorage) {
+    localStorage.setItem(slot, JSON.stringify(save))
+  }
+  return save
 }
 
 export function deleteSave(slot = saveSlot) {
