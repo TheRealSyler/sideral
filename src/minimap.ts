@@ -1,6 +1,4 @@
 import { CanvasCache } from './canvas/canvasCache';
-import { Game } from './game';
-import { UI_BOTTOM_HEIGHT } from './globalConstants';
 
 export class Minimap extends CanvasCache {
   constructor(parent: HTMLElement, private size: number, private mapSize: number, private drawBg: (ctx: CanvasRenderingContext2D) => void) {

@@ -1,7 +1,4 @@
-
-import { Building } from './building';
 import { Position } from './interfaces';
-import { Unit } from './unit';
 
 export enum MapCellTexturePos {
   'gras',

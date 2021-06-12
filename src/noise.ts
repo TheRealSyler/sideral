@@ -416,8 +416,6 @@ export function Perlin(options?: { seed?: number, octaves?: number; lacunarity?:
     );
   }
 
-
-
   return {
     noise2D: noise2D,
     noise3D: noise3D,
