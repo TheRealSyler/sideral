@@ -1,5 +1,4 @@
 import { h } from 'dom-chef'
-import { MapCell } from "../map";
 import { checkAndSubtractResources } from "../resources";
 import { Building, buildingInfo, BuildingNames } from "../building";
 import { displaySeconds } from "../time";
@@ -45,11 +44,11 @@ export function buildingCard(
   const opacity = isUpgrading ? 0 : 1;
 
 
-  return <div className="building-card">
+  return <div className="card">
     <span>{buildingName} {levelName}</span>
-    <div className="building-card-middle">
+    <div className="card-middle">
       {getBuildingIcon(buildingName)}
-      <div className="building-card-resources" style={{ opacity }}>
+      <div className="card-resources" style={{ opacity }}>
         {isAlreadyBuilt ? 'Upgrade' : 'Build'}
         {reqResources && resourceArray(reqResources)}
         {isAlreadyBuilt ?
@@ -57,11 +56,11 @@ export function buildingCard(
           : <span>{info.constructionAchievements}</span>}
       </div>
       {displayResourceStuff({ info, isAlreadyBuilt, level, levelName, opacity, prodTime })}
-      {nextLevelAchievements && <div className="building-card-column" style={{ opacity }}>
+      {nextLevelAchievements && <div className="card-column" style={{ opacity }}>
         Unlocks
         {flattenArray(nextLevelAchievements)}
       </div>}
-      {isAlreadyBuilt && productionTimeReduction && <div className="building-card-column" style={{ opacity }}>
+      {isAlreadyBuilt && productionTimeReduction && <div className="card-column" style={{ opacity }}>
         Next Level
         <span>{productionTimeReduction}</span>
       </div>}

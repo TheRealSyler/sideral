@@ -151,15 +151,19 @@ export class Campaign {
       if (building) {
         const info = buildingInfo[building.name]
         if (building.isUpgrading) {
-          await this.buildingUpgradeCheck(building, info, time, i);
+          await this.buildingUpgradeCheck(building, info, time, i, cell);
         } else {
           this.buildingResourceCheck(info, building, time, cell);
         }
       }
     }
   }
-
-  private async buildingUpgradeCheck(building: Building, info: BuildingInfo, time: number, i: number) {
+  private updateBottomUI(cell: CampaignCell) {
+    if (cell === this.state.get('selectedMapCell')) {
+      this.state.resendListeners('selectedMapCell')
+    }
+  }
+  private async buildingUpgradeCheck(building: Building, info: BuildingInfo, time: number, i: number, cell: CampaignCell) {
     const remainingTime = buildingUpgradeEndDate(building, info);
     const x = (i % MAP_CELLS_PER_ROW)
     const y = floor((i / MAP_CELLS_PER_ROW))
@@ -174,9 +178,8 @@ export class Campaign {
         building.date = Date.now()
         addAchievement(this.achievements, info.achievementUnlocks?.I)
 
-
         this.aStarNodes[i].isObstacle = true
-        this.state.resendListeners('selectedMapCell')
+        this.updateBottomUI(cell)
       }
     } else if (remainingTime < time) {
       building.level++;
@@ -185,10 +188,8 @@ export class Campaign {
       const level = convertBuildingLevel(building.level);
       addAchievement(this.achievements, getLevelRequirement(level, info.achievementUnlocks))
 
-
-
       await renderCellBuilding(new DOMPoint(x, y), this.viewport.buildingTextureCanvas, building)
-      this.state.resendListeners('selectedMapCell')
+      this.updateBottomUI(cell)
     }
   }
 
@@ -203,16 +204,12 @@ export class Campaign {
         if (!resReq) {
           if (cell.resourceAmount === -1) {
             this.state.setFunc(info.productionType, (v) => v + 1);
-            this.state.resendListeners('selectedMapCell');
-
           } else if (cell.resourceAmount >= 1) {
             cell.resourceAmount--;
             this.state.setFunc(info.productionType, (v) => v + 1);
-            this.state.resendListeners('selectedMapCell');
           } else console.log('NO RESOURCES TODO implement warning or something');
 
         } else if (checkAndSubtractResources(this.state, resReq)) {
-          this.state.resendListeners('selectedMapCell');
           this.state.setFunc(info.productionType, (v) => v + 1);
         } else console.log('NO RESOURCES TODO implement warning or something');
       }

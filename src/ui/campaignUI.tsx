@@ -1,4 +1,3 @@
-import { toPx } from "../utils";
 import { h } from 'dom-chef'
 import { defaultResources, ResourceName } from "../resources";
 import { buildingInfo, cellBuildings, } from "../building";
@@ -64,7 +63,7 @@ function bottomUI(game: Campaign) {
   const cellName = <span > </span>;
   const cellIcon = <div className="cell-icon"></div>;
   const cellResourcesAmount = <span></span>;
-  const cellBuilding = <div className="building-cards"> </div>;
+  const cellBuilding = <div className="cards"> </div>;
 
   const upgradeTimeLeftEvent = 'upgrade-time';
   game.state.addListener('selectedMapCell', (cell) => {
