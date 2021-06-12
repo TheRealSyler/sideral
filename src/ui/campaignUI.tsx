@@ -72,6 +72,7 @@ function bottomUI(game: Campaign) {
     cellBuilding.innerHTML = ''
     cellName.textContent = ''
     cellResourcesAmount.textContent = ''
+    console.log('awd')
     if (cell) {
       cellIcon.appendChild(getCellIcon(cell.type))
       cellName.textContent = cell.type;
@@ -97,7 +98,6 @@ function bottomUI(game: Campaign) {
           };
           uiEvents.add(upgradeTimeLeftEvent, updateProductionTime);
           updateProductionTime()
-
         }
 
         cellBuilding.appendChild(buildingCard(game, building.name, building.level < 3 ? 3 : building.level, cell, building, upgradeTime, prodTime))

@@ -4,6 +4,7 @@ import { BuildingInfo, BuildingLevel } from "../building";
 import { displaySeconds } from "../time";
 import { getLevelRequirement, buildingFormula } from "../buildingFunctions";
 import { getResourceIcon } from '../icons';
+import { CardColumn } from './card';
 
 export interface Props {
   children?: any
@@ -24,18 +25,18 @@ export function displayResourceStuff({ info, opacity, isAlreadyBuilt, levelName,
       ? levelName : 'I', info.production.requirements);
 
     return <Fragment>
-      <div className="building-card-column" style={{ opacity: opacity }}>
+      <CardColumn style={{ opacity }}>
         Produces
         {isAlreadyBuilt && <span>every {displaySeconds(buildingFormula(info.production, level))}</span>}
         <span className="resource">{getResourceIcon(info.productionType)}
           {isAlreadyBuilt ?
             prodTime : `every ${displaySeconds(info.production.rate)}`}
         </span>
-      </div>
-      {resourceProdReq && <div className="building-card-column" style={{ opacity }}>
+      </CardColumn>
+      {resourceProdReq && <CardColumn style={{ opacity }}>
         Uses
         {resourceArray(resourceProdReq)}
-      </div>}
+      </CardColumn>}
     </Fragment>;
   }
 }

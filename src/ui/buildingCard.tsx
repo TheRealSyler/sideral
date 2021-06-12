@@ -8,6 +8,7 @@ import { getBuildingIcon } from '../icons';
 import { manageCitizens } from './manageCitizens';
 import { resourceArray, flattenArray, displayResourceStuff } from "./utils";
 import { CampaignCell, Campaign } from '../campaign';
+import { Card, CardColumn } from './card';
 
 export function buildingCard(
   game: Campaign,
@@ -43,8 +44,7 @@ export function buildingCard(
 
   const opacity = isUpgrading ? 0 : 1;
 
-
-  return <div className="card">
+  return <Card>
     <span>{buildingName} {levelName}</span>
     <div className="card-middle">
       {getBuildingIcon(buildingName)}
@@ -56,14 +56,14 @@ export function buildingCard(
           : <span>{info.constructionAchievements}</span>}
       </div>
       {displayResourceStuff({ info, isAlreadyBuilt, level, levelName, opacity, prodTime })}
-      {nextLevelAchievements && <div className="card-column" style={{ opacity }}>
+      {nextLevelAchievements && <CardColumn style={{ opacity }}>
         Unlocks
         {flattenArray(nextLevelAchievements)}
-      </div>}
-      {isAlreadyBuilt && productionTimeReduction && <div className="card-column" style={{ opacity }}>
+      </CardColumn>}
+      {isAlreadyBuilt && productionTimeReduction && <CardColumn style={{ opacity }}>
         Next Level
         <span>{productionTimeReduction}</span>
-      </div>}
+      </CardColumn>}
       {building && isAlreadyBuilt ? <button className="button" onClick={() => manageCitizens(game.citizens, building)}>Manage</button> : null}
 
     </div>
@@ -90,5 +90,5 @@ export function buildingCard(
       {isUpgrading ? upgradeTime : isAlreadyBuilt ? 'Upgrade' : 'Build'} ({isAlreadyBuilt ?
         displaySeconds(buildingUpgradeFormula(info, level)).trimEnd() : displaySeconds(info.constructionTime)})
     </button>
-  </div>;
+  </Card>;
 }
