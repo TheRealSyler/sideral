@@ -1,25 +1,19 @@
 import { clamp, floor } from '../utils'
+import { CanvasCache } from './canvasCache'
 
-export class CanvasViewer {
-  canvas = document.createElement('canvas')
-  ctx!: CanvasRenderingContext2D
+export class CanvasViewer extends CanvasCache {
+
   static viewers = 0
   static container = document.createElement('div')
   constructor(public size: number, public scale = 1, public cssScale = 1) {
-
+    super(size, `Canvas Viewer ${CanvasViewer.viewers}`)
     this.canvas.width = size * scale
     this.canvas.height = size * scale
 
     this.canvas.style.width = `${size * scale * cssScale}px`
     this.canvas.style.height = `${size * scale * cssScale}px`
     this.canvas.style.imageRendering = 'crisp-edges'
-    const ctx = this.canvas.getContext('2d')
-    if (ctx) {
-      this.ctx = ctx
-    } else {
-      // TODO add could not initialize notification.
-      console.error(`could not initialize 2d context in Canvas Viewer[${CanvasViewer.viewers}], todo add notification`)
-    }
+
     if (CanvasViewer.viewers === 0) {
       document.body.appendChild(CanvasViewer.container)
       CanvasViewer.container.style.position = 'fixed'
