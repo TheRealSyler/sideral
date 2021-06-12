@@ -1,7 +1,6 @@
 import { CanvasCache } from './canvasCache';
 import { clamp } from '../utils';
-
-
+import { Bounds } from '../interfaces';
 
 export class Viewport extends CanvasCache {
   camera = {
@@ -14,14 +13,14 @@ export class Viewport extends CanvasCache {
     }
   }
 
-  private bounds: ViewportBounds = {
+  private bounds: Bounds = {
     top: 0,
     left: 0,
     right: 10000,
     bottom: 10000,
   }
 
-  setBounds(bounds: ViewportBounds) {
+  setBounds(bounds: Bounds) {
     this.bounds = bounds
   }
 
@@ -144,8 +143,6 @@ export class Viewport extends CanvasCache {
 
     this.ctx.translate(-pt.x, -pt.y);
 
-
-
   }
 
   private handleScroll = (evt: any) => {
@@ -251,9 +248,3 @@ interface ViewportOptions {
   zoomMaxScale: number
 }
 
-interface ViewportBounds {
-  top: number
-  left: number
-  right: number
-  bottom: number
-}
