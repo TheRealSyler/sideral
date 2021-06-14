@@ -1,6 +1,7 @@
 import { h } from 'dom-chef'
-import { Battlemode, Soldier } from '../battlemode'
+import { Battlemode } from '../battlemode'
 import { deleteSave, saveBattlemode } from '../save'
+import { Soldier } from '../soldier'
 import { BottomUI } from './bottomUI'
 import { TopUI } from './topUI'
 
@@ -59,7 +60,7 @@ export function InitBattlemodeUI(game: Battlemode) {
             <div>
 
               Soldier:
-              {JSON.stringify({ ...soldier, currentCell: undefined, game: undefined })}
+              <span>{soldier.name}</span>
             </div>
           </div>)
         } else {
@@ -94,10 +95,11 @@ export function InitBattlemodeUI(game: Battlemode) {
 
 function createSoldierUI(i: number, soldier: Soldier, game: Battlemode) {
   const cell = game.state.get('selectedMapCell')
-  const isInSelectedCell = cell && cell === soldier.currentCell
+
+  const isInSelectedCell = cell === soldier.currentCell
   let button
 
-  if (cell && !isInSelectedCell) {
+  if (cell && !isInSelectedCell && (cell.currentUnit ? cell.currentUnit.team === soldier.team : true)) {
     button = <button className="button" onClick={() => {
       game.deploySoldier(cell, soldier)
     }}>{soldier.currentCell ? 'Re Deploy' : 'Deploy'}</button>
@@ -115,15 +117,8 @@ function createSoldierUI(i: number, soldier: Soldier, game: Battlemode) {
       onDragStart={(e) => {
         e.dataTransfer.setData('soldier', '' + i)
       }}
-      onClick={() => {
-
-        if (cell && !isInSelectedCell) {
-          game.deploySoldier(cell, soldier)
-        }
-      }}
-
     >
-      {/* <span>{soldier.name}</span> */}
+      <span>{soldier.name}</span>
 
 
     </div>

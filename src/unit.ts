@@ -83,8 +83,8 @@ export class Unit implements UnitSave {
 
 
   }
-  update(ctx: CanvasRenderingContext2D) {
 
+  protected updatePosition() {
     if (this.canMove && !this.reachedDestination) {
       const angle = angleTo(this.x, this.y, this.target.x, this.target.y)
       const d = distance(this.x, this.y, this.target.x, this.target.y)
@@ -98,16 +98,19 @@ export class Unit implements UnitSave {
         this.moveToNewTarget();
       }
     }
+  }
+
+  protected draw(ctx: CanvasRenderingContext2D, color = '#fff', rimColor = '#0af') {
     if (this.currentCell) {
       if (this.selected) {
         if (this.canMove) {
 
           ctx.fillStyle = '#ff6'
         } else {
-          ctx.fillStyle = '#fff'
+          ctx.fillStyle = color
 
         }
-        ctx.strokeStyle = '#0af'
+        ctx.strokeStyle = rimColor
         ctx.beginPath();
         ctx.arc(this.x, this.y, 6, 0, 2 * Math.PI);
         ctx.fill();
@@ -145,6 +148,12 @@ export class Unit implements UnitSave {
         ctx.fill();
       }
     }
+  }
+
+  update(ctx: CanvasRenderingContext2D) {
+    this.updatePosition()
+    this.draw(ctx)
+
   }
   moveToNewTarget() {
     if (this.currentCell) {

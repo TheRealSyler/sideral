@@ -2,7 +2,6 @@ import './index.sass';
 import { generateBattleModeMap, generateMap } from './mapGenerator';
 import { CanvasViewer } from './canvas/canvasViewer';
 import { FindAStar, findPath, genAStarNodes, restoreAStarNodes } from './aStar';
-import { Battlemode, Soldier } from './battlemode';
 import { setUIVariables } from './ui/setUIVariables';
 import { Game } from './game';
 
