@@ -2,7 +2,6 @@ import { GameMap, MapCell, MapCellName } from './map';
 import { degToRad, floor } from './utils';
 import random from 'seedrandom'
 import { islandMaskGen, forestMaskGen, oreMaskGen } from './mapMasks';
-import { MAP_CELLS_PER_ROW } from './globalConstants';
 import { CampaignCell } from './campaign';
 import { BattlemodeCell } from './battlemode';
 
@@ -35,7 +34,7 @@ export function generateMap(width: number, seed: number) {
       currentUnit: undefined,
       rotation: rotation,
       type: type,
-      position: { x: i % MAP_CELLS_PER_ROW, y: floor(i / MAP_CELLS_PER_ROW) }
+      position: { x: i % width, y: floor(i / width) }
     })
 
     if (cellAmounts[type]) {
@@ -70,7 +69,7 @@ export function generateBattleModeMap(width: number, seed: number) {
     map.cells[i] = ({
       rotation: rotation,
       type: type,
-      position: { x: i % MAP_CELLS_PER_ROW, y: floor(i / MAP_CELLS_PER_ROW) }
+      position: { x: i % width, y: floor(i / width) }
     })
 
     if (cellAmounts[type]) {

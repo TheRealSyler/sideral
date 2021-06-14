@@ -72,7 +72,6 @@ function bottomUI(game: Campaign) {
     cellBuilding.innerHTML = ''
     cellName.textContent = ''
     cellResourcesAmount.textContent = ''
-    console.log('awd')
     if (cell) {
       cellIcon.appendChild(getCellIcon(cell.type))
       cellName.textContent = cell.type;

@@ -1,7 +1,7 @@
 import { findPath, restoreAStarNodes } from './aStar';
 import { CanvasCache } from './canvas/canvasCache';
 
-import { MAP_CELL_SIZE, MAP_MOVE_FACTOR, MAP_PADDING, ZOOM_SCALE_FACTOR, ZOOM_MAX_SCALE, UI_BOTTOM_HEIGHT, UI_TOP_HEIGHT, MAP_CELLS_PER_ROW } from './globalConstants';
+import { MAP_CELL_SIZE, MAP_MOVE_FACTOR, MAP_PADDING, ZOOM_SCALE_FACTOR, ZOOM_MAX_SCALE, UI_BOTTOM_HEIGHT, UI_TOP_HEIGHT } from './globalConstants';
 import { Position } from './interfaces';
 import { render } from './render';
 
@@ -41,7 +41,6 @@ export class CampaignViewport extends Viewport {
     })
     game.main.appendChild(this.canvas)
     this.canvas.className = 'map';
-    window.addEventListener('resize', this.resize);
   }
 
   public async start() {
@@ -50,10 +49,11 @@ export class CampaignViewport extends Viewport {
       mousedown: this.mousedown,
       mousemove: this.mousemove,
       mouseup: this.mouseup,
+      resize: this.resize
     })
     // don't change the order of the function calls.
     this.resize()
-    await render(this.mapTextureCanvas, this.game.map.cells, MAP_CELLS_PER_ROW, async (i, x, y) => {
+    await render(this.mapTextureCanvas, this.game.map.cells, this.game.cellsPerRow, async (i, x, y) => {
       const cell = this.game.map.cells[i]
       if (cell.building) {
         this.buildingTextureCanvas.ctx.drawImage(await renderBuilding(cell.building), x, y, MAP_CELL_SIZE, MAP_CELL_SIZE)
@@ -111,7 +111,6 @@ export class CampaignViewport extends Viewport {
     this.canvas.height = this.getViewportHeight();
     this.canvas.style.top = toPx(UI_TOP_HEIGHT);
     this.canvas.style.bottom = toPx(UI_BOTTOM_HEIGHT);
-    this._resize()
   }
 
   private mousemove = (e: MouseEvent) => {
@@ -152,7 +151,6 @@ export class CampaignViewport extends Viewport {
     } else {
       this.showHover = true
     }
-
   }
 
   private mouseleave = () => {
@@ -166,7 +164,7 @@ export class CampaignViewport extends Viewport {
       const x2 = floor(x / MAP_CELL_SIZE)
       const y2 = floor(y / MAP_CELL_SIZE)
       let selectUnit = false
-      const cellIndex = x2 + MAP_CELLS_PER_ROW * y2
+      const cellIndex = x2 + this.game.cellsPerRow * y2
       for (let i = 0; i < this.game.units.length; i++) {
         const unit = this.game.units[i];
         const cell = this.game.map.cells[cellIndex];
@@ -183,7 +181,7 @@ export class CampaignViewport extends Viewport {
       } else {
         this.game.mode = 'building'
         if (x >= 0 && x < this.game.mapSize && y >= 0 && y < this.game.mapSize) {
-          const index = x2 + MAP_CELLS_PER_ROW * y2;
+          const index = x2 + this.game.cellsPerRow * y2;
           this.game.state.set('selectedMapCell', this.game.map.cells[index])
         }
       }
@@ -223,27 +221,23 @@ export class CampaignViewport extends Viewport {
         const targetY = y2;
         const targetXCell = floor(targetX / MAP_CELL_SIZE);
         const targetYCell = floor(targetY / MAP_CELL_SIZE);
-        const endIndex = targetXCell + MAP_CELLS_PER_ROW * targetYCell;
-        if (!this.game.aStarNodes[endIndex].isObstacle) {
-          const startIndex = floor(unit.x / MAP_CELL_SIZE) + MAP_CELLS_PER_ROW * floor(unit.y / MAP_CELL_SIZE);
-          if (startIndex === endIndex) {
-            unit.path.length = 0
-            unit.path.push({ x: targetXCell, y: targetYCell });
-            unit.endTarget.x = targetX;
-            unit.endTarget.y = targetY;
-            unit.moveToNewTarget()
-          } else {
+        const endIndex = targetXCell + this.game.cellsPerRow * targetYCell;
+        const endNode = this.game.aStarNodes[endIndex];
+        if (!endNode.isObstacle) {
+          const startIndex = floor(unit.x / MAP_CELL_SIZE) + this.game.cellsPerRow * floor(unit.y / MAP_CELL_SIZE);
+          if (startIndex !== endIndex) {
+
             const oldTargetX = floor(unit.target.x / MAP_CELL_SIZE)
             const oldTargetY = floor(unit.target.y / MAP_CELL_SIZE)
-            const i = oldTargetX + MAP_CELLS_PER_ROW * oldTargetY
+            const i = oldTargetX + this.game.cellsPerRow * oldTargetY
             this.game.aStarNodes[i].isObstacle = false
 
-            const path = findPath(this.game.aStarNodes[startIndex], this.game.aStarNodes[endIndex]);
+            const path = findPath(this.game.aStarNodes[startIndex], endNode);
             if (path) {
               unit.path.length = 0
               unit.path.push(...path);
-              unit.endTarget.x = targetX;
-              unit.endTarget.y = targetY;
+              unit.targetCellPos.x = targetXCell;
+              unit.targetCellPos.y = targetYCell;
               unit.moveToNewTarget()
             }
           }

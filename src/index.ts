@@ -1,18 +1,16 @@
 import './index.sass';
-import { Game } from './game';
-import { generateMap } from './mapGenerator';
-import { MAP_CELLS_PER_ROW } from './globalConstants';
+import { generateBattleModeMap, generateMap } from './mapGenerator';
 import { CanvasViewer } from './canvas/canvasViewer';
-import { FindAStar, MapToAStarNodes } from './aStar';
-import { Battlemode } from './battlemode';
+import { FindAStar, findPath, genAStarNodes, restoreAStarNodes } from './aStar';
+import { Battlemode, Soldier } from './battlemode';
 import { setUIVariables } from './ui/setUIVariables';
+import { Game } from './game';
 
 (async () => {
   document.addEventListener('contextmenu', event => event.preventDefault());
   setUIVariables()
   let a = false
   a = true
-
   const seed = 0
   if (a) {
 
@@ -20,20 +18,23 @@ import { setUIVariables } from './ui/setUIVariables';
     // const viewer = new CanvasViewer(size, 40, 0.4)
 
     // viewer.drawNumArray(forestMaskGen(0, size, 0.8, 0.7, 4))
-    new Battlemode()
-    // new Game(seed)
+
+
+    new Game(seed)
+
+
 
   } else {
 
     // const s = 64
     // const viewer = new CanvasViewer(s, 800 / s)
     // viewer.drawNumArray(oreMaskGen(seed, s, islandMaskGen(seed, s).mask))
-
+    const MAP_CELLS_PER_ROW = 64
     const m = generateMap(MAP_CELLS_PER_ROW, seed)
 
     const size = 64
 
-    const nodes = MapToAStarNodes(m.cells, MAP_CELLS_PER_ROW)
+    const nodes = genAStarNodes(m.cells, MAP_CELLS_PER_ROW, (cell) => cell.type !== 'gras' || !!cell.building)
 
     // nodes[7].isObstacle = true
     // nodes[8].isObstacle = true

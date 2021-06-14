@@ -1,16 +1,16 @@
 import { Achievements, addAchievement } from './achievements';
 import { renderAnimation } from './animation';
-import { AStarNode, MapToAStarNodes } from './aStar';
+import { AStarNode, genAStarNodes } from './aStar';
 import { Building, BuildingInfo, buildingInfo } from "./building";
 import { buildingEndDate, buildingUpgradeEndDate, convertBuildingLevel, getLevelRequirement } from "./buildingFunctions";
 import { Citizen } from './citizen';
-import { MAP_CELL_SIZE, UI_TOP_HEIGHT, UI_BOTTOM_HEIGHT, MAP_CELLS_PER_ROW } from "./globalConstants";
+import { MAP_CELL_SIZE, UI_BOTTOM_HEIGHT } from "./globalConstants";
 import { GameMap, MapCell } from "./map"
 import { generateMap } from './mapGenerator';
 import { Minimap } from './minimap';
 import { renderCellBuilding } from "./render";
 import { checkAndSubtractResources, defaultResources } from "./resources";
-import { CampaignSave, offsetCellDates, saveCampaign } from './save';
+import { CampaignSave, offsetBuildingDates, saveCampaign } from './save';
 import { State, CampaignState } from "./state";
 import { fromNow } from './time';
 import { InitCampaignUI } from "./ui/campaignUI";
@@ -20,24 +20,28 @@ import { CampaignViewport } from './campaignViewport';
 
 export type SelectionMode = 'unit' | 'building';
 
-
-
 export interface CampaignCell extends MapCell {
   resourceAmount: number
   building: Building | null,
-  currentUnit?: Unit
+  currentUnit?: CampaignArmy
+}
+
+export class CampaignArmy extends Unit {
+  // constructor(parameters) {
+  //   super
+  // }
 }
 
 export class Campaign {
   map: GameMap<CampaignCell>
-
-  mapSize = MAP_CELLS_PER_ROW * MAP_CELL_SIZE
+  cellsPerRow = 64
+  mapSize = this.cellsPerRow * MAP_CELL_SIZE
 
   state: State<CampaignState>;
   achievements: Achievements
   aStarNodes: AStarNode[]
 
-  units: Unit[]
+  units: CampaignArmy[]
   citizens: Citizen[] = [
     { name: '12', },
     { name: '23', },
@@ -58,35 +62,30 @@ export class Campaign {
   })
 
   constructor(public seed: number, save?: CampaignSave) {
-
+    const isObstacle = (cell: CampaignCell): boolean => cell.type !== 'gras' || !!cell.building;
     if (save) {
       this.map = save.map
-
-      this.aStarNodes = MapToAStarNodes(this.map.cells, MAP_CELLS_PER_ROW)
+      this.aStarNodes = genAStarNodes(this.map.cells, this.cellsPerRow, isObstacle)
       this.achievements = save.achievements
       this.state = new State<CampaignState>(save.state)
-      this.units = save.units.map(save => {
-        const newUnit = new Unit(this, save.cellPosition)
-        newUnit.applySave(save)
-        return newUnit
-      })
+      this.units = save.units.map(save => new CampaignArmy(this, save.cellPosition, save))
     } else {
 
-      this.map = generateMap(MAP_CELLS_PER_ROW, this.seed)
-      this.aStarNodes = MapToAStarNodes(this.map.cells, MAP_CELLS_PER_ROW)
+      this.map = generateMap(this.cellsPerRow, this.seed)
+      this.aStarNodes = genAStarNodes(this.map.cells, this.cellsPerRow, isObstacle)
       this.achievements = {}
       this.state = new State<CampaignState>({
         ...defaultResources,
         selectedMapCell: null,
       })
       this.units = [
-        new Unit(this, this.map.cells[2012].position),
-        new Unit(this, this.map.cells[2014].position, 4),
-        new Unit(this, this.map.cells[2015].position, 3),
-        new Unit(this, this.map.cells[2016].position, 3),
-        new Unit(this, this.map.cells[2017].position, 3),
-        new Unit(this, this.map.cells[2019].position, 3),
-        new Unit(this, this.map.cells[2020].position, 3)
+        new CampaignArmy(this, this.map.cells[2012].position),
+        new CampaignArmy(this, this.map.cells[2014].position, undefined, 4),
+        new CampaignArmy(this, this.map.cells[2015].position, undefined, 3),
+        new CampaignArmy(this, this.map.cells[2016].position, undefined, 3),
+        new CampaignArmy(this, this.map.cells[2017].position, undefined, 3),
+        new CampaignArmy(this, this.map.cells[2019].position, undefined, 3),
+        new CampaignArmy(this, this.map.cells[2020].position, undefined, 3)
       ]
     }
     document.body.appendChild(this.main)
@@ -134,7 +133,7 @@ export class Campaign {
     this.state.set('selectedMapCell', this.lastSelectedMapCell)
     console.log('PLAY GAME')
     if (this.pauseTime >= 0) {
-      offsetCellDates(this.map.cells, Date.now() - this.pauseTime)
+      offsetBuildingDates(this.map.cells, Date.now() - this.pauseTime)
     }
     this.update(0)
     this.logicHandler = setInterval(this.logicLoop, 250) as any
@@ -165,8 +164,8 @@ export class Campaign {
   }
   private async buildingUpgradeCheck(building: Building, info: BuildingInfo, time: number, i: number, cell: CampaignCell) {
     const remainingTime = buildingUpgradeEndDate(building, info);
-    const x = (i % MAP_CELLS_PER_ROW)
-    const y = floor((i / MAP_CELLS_PER_ROW))
+    const x = (i % this.cellsPerRow)
+    const y = floor((i / this.cellsPerRow))
     if (building.level < 4) {
       const progress = 1 - ((remainingTime - Date.now()) / (info.constructionTime * 1000));
       if (progress > (building.level + 1) * 0.25) {
@@ -234,15 +233,15 @@ export class Campaign {
   }
 
   private async drawAnimations(delta: number, xStart: number, yStart: number, xEnd: number, yEnd: number) {
-    const xStartCell = clamp(floor(xStart / MAP_CELL_SIZE), MAP_CELLS_PER_ROW - 1, 0);
-    const yStartCell = clamp(floor(yStart / MAP_CELL_SIZE), MAP_CELLS_PER_ROW - 1, 0);
-    const xEndCell = clamp(floor(xEnd / MAP_CELL_SIZE), MAP_CELLS_PER_ROW - 1, 0);
-    const yEndCell = clamp(floor(yEnd / MAP_CELL_SIZE), MAP_CELLS_PER_ROW - 1, 0);
+    const xStartCell = clamp(floor(xStart / MAP_CELL_SIZE), this.cellsPerRow - 1, 0);
+    const yStartCell = clamp(floor(yStart / MAP_CELL_SIZE), this.cellsPerRow - 1, 0);
+    const xEndCell = clamp(floor(xEnd / MAP_CELL_SIZE), this.cellsPerRow - 1, 0);
+    const yEndCell = clamp(floor(yEnd / MAP_CELL_SIZE), this.cellsPerRow - 1, 0);
     this.viewport.ctx.fillStyle = "white";
     this.viewport.ctx.font = '10px sans-serif'
     for (let x = xStartCell; x <= xEndCell; x++) {
       for (let y = yStartCell; y <= yEndCell; y++) {
-        const i = x + MAP_CELLS_PER_ROW * y;
+        const i = x + this.cellsPerRow * y;
         const x2 = x * MAP_CELL_SIZE
         const y2 = y * MAP_CELL_SIZE
         const { building } = this.map.cells[i]
@@ -260,13 +259,13 @@ export class Campaign {
           // }
         }
 
-        // const node = this.aStarNodes[i]
-        // this.viewport.ctx.fillStyle = '#f003'
-        // if (node.isObstacle) {
-        //   this.viewport.ctx.beginPath();
-        //   this.viewport.ctx.rect(x2, y2, MAP_CELL_SIZE, MAP_CELL_SIZE);
-        //   this.viewport.ctx.fill();
-        // }
+        const node = this.aStarNodes[i]
+        this.viewport.ctx.fillStyle = '#f003'
+        if (node.isObstacle) {
+          this.viewport.ctx.beginPath();
+          this.viewport.ctx.rect(x2, y2, MAP_CELL_SIZE, MAP_CELL_SIZE);
+          this.viewport.ctx.fill();
+        }
         // this.viewport.ctx.fillStyle = '#000'
         // this.viewport.ctx.strokeStyle = '#f00'
         // this.viewport.ctx.beginPath();
