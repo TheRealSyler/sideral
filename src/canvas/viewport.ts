@@ -39,7 +39,7 @@ export class Viewport extends CanvasCache {
     this.canvas.addEventListener('mousemove', this._mousemove);
     this.canvas.addEventListener('mouseup', this._mouseup);
     this.canvas.addEventListener('mouseleave', this._mouseleave);
-
+    window.addEventListener('resize', this._resize);
     this.addCtxTransformTacking(this.ctx)
   }
 
@@ -68,10 +68,11 @@ export class Viewport extends CanvasCache {
     this.events = events
   }
 
-  _resize = () => {
+  private _resize = (e: any) => {
     const transform = this.ctx.getTransform()
     this.ctx.setDomMatrix(new DOMMatrix())
     this.ctx.translate(transform.e, transform.f)
+    this.event('resize', e)
   }
 
   private event<K extends keyof ViewportEvents>(key: K, e: any) {
@@ -102,7 +103,7 @@ export class Viewport extends CanvasCache {
     this.event('mouseleave', e)
   }
 
-  private _mousemove = (evt: MouseEvent) => {
+  protected _mousemove = (evt: MouseEvent) => {
     this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
     this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
 
@@ -236,6 +237,7 @@ interface ViewportEvents {
   mouseup?: ViewportMouseEvent
   mouseleave?: ViewportMouseEvent
   mousemove?: ViewportMouseEvent
+  resize?: (e: UIEvent) => void
 }
 
 

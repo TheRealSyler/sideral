@@ -1,6 +1,5 @@
 import { BattlemodeCell } from './battlemode';
 import { CampaignCell } from './campaign';
-import { MapCell } from './map';
 import { Resources } from "./resources";
 
 export class State<State extends { [key: string]: any }> {
@@ -42,6 +41,9 @@ export interface CampaignState extends Resources {
 }
 
 export interface BattlemodeState {
+  canStartBattle: boolean
+  startedBattle: boolean
+  playerTurn: boolean
   selectedMapCell: null | BattlemodeCell
 }
 

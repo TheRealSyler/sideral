@@ -1,10 +1,12 @@
+import { Battlemode } from './battlemode';
 import { Campaign } from './campaign';
-import { loadCampaignSave, saveCampaign } from './save';
+import { loadBattlemodeSave, loadCampaignSave, saveCampaign } from './save';
 export class Game {
-
-  // battleMode = new BattleMode()
+  isInCampaign = false
+  battleModeSave = loadBattlemodeSave()
+  battleMode: Battlemode | undefined = undefined
   campaignSave = loadCampaignSave()
-  campaign: Campaign | undefined = new Campaign(this.seed, this.campaignSave)
+  campaign: Campaign | undefined = undefined
   constructor(public seed: number) {
 
     const a = document.createElement('div')
@@ -22,6 +24,13 @@ export class Game {
       }
     }
     document.body.appendChild(a)
+
+
+    if (this.isInCampaign) {
+      this.campaign = new Campaign(this.seed, this.campaignSave)
+    } else {
+      this.battleMode = new Battlemode({ soldiers: [{ name: 'awd' }, { name: 'test' }] }, { soldiers: [] }, this.battleModeSave)
+    }
   }
 
 }

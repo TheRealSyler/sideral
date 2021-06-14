@@ -1,8 +1,10 @@
 import { Achievements } from './achievements';
+import { ArmySave, Battlemode, BattlemodeCell } from './battlemode';
 import { Building } from './building';
 import { Campaign, CampaignCell } from './campaign';
+import { Position } from './interfaces';
 import { GameMap } from './map';
-import { CampaignState } from './state';
+import { BattlemodeState, CampaignState } from './state';
 import { UnitSave } from './unit';
 
 export interface CampaignSave {
@@ -13,19 +15,27 @@ export interface CampaignSave {
   units: UnitSave[]
 }
 
-const saveSlot = 'saveTest'
+export interface BattleModeSave {
+  map: GameMap<BattlemodeCell>
+  state: BattlemodeState,
+  playerArmy: ArmySave
+  aiArmy: ArmySave
+}
 
-export function loadCampaignSave(slot = saveSlot) {
+const campaignSlot = 'saveTest'
+const battlemodeSlot = 'saveTestBattleMode'
+
+export function loadCampaignSave(slot = campaignSlot) {
   console.log('Load Game Save from Slot:', slot)
   const rawSave = localStorage.getItem(slot)
   if (rawSave) {
     const save: CampaignSave = JSON.parse(rawSave)
 
-    offsetCellDates(save.map.cells, Date.now() - save.date);
+    offsetBuildingDates(save.map.cells, Date.now() - save.date);
     return save
   }
 }
-export function offsetCellDates(cells: { building: Building | null }[], timeOffset: number) {
+export function offsetBuildingDates(cells: { building: Building | null }[], timeOffset: number) {
   cells.forEach(cell => {
     if (cell.building) {
       cell.building.date += timeOffset;
@@ -33,7 +43,7 @@ export function offsetCellDates(cells: { building: Building | null }[], timeOffs
   });
 }
 
-export async function saveCampaign(game: Campaign, slot = saveSlot, saveToLocalStorage = true) {
+export async function saveCampaign(game: Campaign, slot = campaignSlot, saveToLocalStorage = true) {
   console.log('Saved Game to Slot:', slot)
   const map = game.map
 
@@ -50,7 +60,51 @@ export async function saveCampaign(game: Campaign, slot = saveSlot, saveToLocalS
   return save
 }
 
-export function deleteSave(slot = saveSlot) {
+export function deleteSave(slot = campaignSlot) {
   console.log('Delete Game Save from Slot:', slot)
   localStorage.removeItem(slot)
 }
+
+
+
+export function saveBattlemode(game: Battlemode, slot = battlemodeSlot, saveToLocalStorage = true) {
+  console.log('Saved Game to Slot:', slot)
+
+  const state = game.state.getState();
+  const save: BattleModeSave = {
+    aiArmy: { soldiers: game.aiArmy.soldiers.map((soldier) => soldier.save()) },
+    playerArmy: { soldiers: game.playerArmy.soldiers.map(s => s.save()) },
+    map: { ...game.map, cells: game.map.cells.map((cell) => ({ ...cell, currentUnit: undefined })) },
+    state: { ...state, selectedMapCell: null }
+  }
+
+  if (saveToLocalStorage) {
+    localStorage.setItem(slot, JSON.stringify(save))
+  }
+  return save
+}
+
+
+
+
+export function loadBattlemodeSave(slot = battlemodeSlot) {
+  console.log('Load Game Save from Slot:', slot)
+  const rawSave = localStorage.getItem(slot)
+  if (rawSave) {
+    const save: BattleModeSave = JSON.parse(rawSave)
+
+    return save
+  }
+}
+
+
+// function loadArmy(armyPositions: ArmyPositions, army: Army, cells: BattlemodeCell[]) {
+//   for (let i = 0; i < armyPositions.length; i++) {
+//     const [index, pos] = armyPositions[i];
+
+//     const cell = cells[pos.x + 32 * pos.y] // TODO replace width constant
+
+//     army.soldiers[index].currentCell = cell
+//     cell.currentUnit = army.soldiers[index]
+//   }
+// }
