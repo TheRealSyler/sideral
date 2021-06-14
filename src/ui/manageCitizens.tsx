@@ -1,7 +1,7 @@
 import { Fragment, h } from 'dom-chef';
 import { Building, buildingInfo } from "../building";
 import { Citizen } from '../citizen';
-import { modal } from './modal';
+import { createModal } from './modal';
 
 export function manageCitizens(citizens: Citizen[], building?: Building) {
 
@@ -20,7 +20,7 @@ export function manageCitizens(citizens: Citizen[], building?: Building) {
     }
   }}>{citizenElements}</div>;
 
-  modal(<Fragment>
+  createModal(<Fragment>
     <div className="citizens">
       <h2>Available Citizens</h2>
       {left}
