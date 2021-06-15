@@ -5,7 +5,7 @@ import { MAP_CELL_SIZE, MAP_MOVE_FACTOR, MAP_PADDING, ZOOM_SCALE_FACTOR, ZOOM_MA
 import { Position } from './interfaces';
 import { render } from './render';
 
-import { floor, toPx } from './utils';
+import { floor, getIndex, toPx } from './utils';
 import { Viewport } from './canvas/viewport';
 import { Campaign, SelectionMode } from './campaign';
 import { renderBuilding } from './buildingRender';
@@ -124,8 +124,8 @@ export class CampaignViewport extends Viewport {
         this.selectionEnd.x = x2 - this.selectionStart.x
         this.selectionEnd.y = y2 - this.selectionStart.y
 
-        for (let i = 0; i < this.game.units.length; i++) {
-          const unit = this.game.units[i];
+        for (let i = 0; i < this.game.armies.length; i++) {
+          const unit = this.game.armies[i];
           const isxInverted = this.selectionEnd.x < 0
           const isyInverted = this.selectionEnd.y < 0
           const x = isxInverted ? this.selectionStart.x + this.selectionEnd.x : this.selectionStart.x
@@ -165,16 +165,17 @@ export class CampaignViewport extends Viewport {
       const y2 = floor(y / MAP_CELL_SIZE)
       let selectUnit = false
       const cellIndex = x2 + this.game.cellsPerRow * y2
-      for (let i = 0; i < this.game.units.length; i++) {
-        const unit = this.game.units[i];
-        const cell = this.game.map.cells[cellIndex];
-        if (cell.currentUnit === unit) {
+      const cell = this.game.map.cells[cellIndex];
+      for (let i = 0; i < this.game.armies.length; i++) {
+        const army = this.game.armies[i];
+        if (cell.currentUnit === army) {
           selectUnit = true
-          unit.selected = true
+          army.selected = true
         } else {
-          unit.selected = false
+          army.selected = false
         }
       }
+
       if (selectUnit) {
         this.game.mode = 'unit'
         this.game.state.set('selectedMapCell', null)
@@ -214,9 +215,9 @@ export class CampaignViewport extends Viewport {
     const { x: x2, y: y2 } = this.ctx.transformedPoint(x, y);
     let movedUnit = false;
 
-    for (let i = 0; i < this.game.units.length; i++) {
-      const unit = this.game.units[i];
-      if (unit.selected) {
+    for (let i = 0; i < this.game.armies.length; i++) {
+      const army = this.game.armies[i];
+      if (army.selected) {
         const targetX = x2;
         const targetY = y2;
         const targetXCell = floor(targetX / MAP_CELL_SIZE);
@@ -224,21 +225,21 @@ export class CampaignViewport extends Viewport {
         const endIndex = targetXCell + this.game.cellsPerRow * targetYCell;
         const endNode = this.game.aStarNodes[endIndex];
         if (!endNode.isObstacle) {
-          const startIndex = floor(unit.x / MAP_CELL_SIZE) + this.game.cellsPerRow * floor(unit.y / MAP_CELL_SIZE);
+          const startIndex = floor(army.x / MAP_CELL_SIZE) + this.game.cellsPerRow * floor(army.y / MAP_CELL_SIZE);
           if (startIndex !== endIndex) {
 
-            const oldTargetX = floor(unit.target.x / MAP_CELL_SIZE)
-            const oldTargetY = floor(unit.target.y / MAP_CELL_SIZE)
-            const i = oldTargetX + this.game.cellsPerRow * oldTargetY
+            const oldTargetX = floor(army.target.x / MAP_CELL_SIZE)
+            const oldTargetY = floor(army.target.y / MAP_CELL_SIZE)
+            const i = getIndex(oldTargetX, oldTargetY, this.game.cellsPerRow)
             this.game.aStarNodes[i].isObstacle = false
 
             const path = findPath(this.game.aStarNodes[startIndex], endNode);
             if (path) {
-              unit.path.length = 0
-              unit.path.push(...path);
-              unit.targetCellPos.x = targetXCell;
-              unit.targetCellPos.y = targetYCell;
-              unit.moveToNewTarget()
+              army.path.length = 0
+              army.path.push(...path);
+              army.targetCellPos.x = targetXCell;
+              army.targetCellPos.y = targetYCell;
+              army.moveToNewTarget()
             }
           }
           movedUnit = true;

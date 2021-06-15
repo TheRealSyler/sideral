@@ -15,7 +15,7 @@ import { State, CampaignState } from "./state";
 import { fromNow } from './time';
 import { InitCampaignUI } from "./ui/campaignUI";
 import { Unit } from './unit';
-import { clamp, floor } from "./utils";
+import { clamp, floor, getIndex } from "./utils";
 import { CampaignViewport } from './campaignViewport';
 
 export type SelectionMode = 'unit' | 'building';
@@ -41,7 +41,7 @@ export class Campaign {
   achievements: Achievements
   aStarNodes: AStarNode[]
 
-  units: CampaignArmy[]
+  armies: CampaignArmy[]
   citizens: Citizen[] = [
     { name: '12', },
     { name: '23', },
@@ -68,7 +68,7 @@ export class Campaign {
       this.aStarNodes = genAStarNodes(this.map.cells, this.cellsPerRow, isObstacle)
       this.achievements = save.achievements
       this.state = new State<CampaignState>(save.state)
-      this.units = save.units.map(save => new CampaignArmy(this, save.cellPosition, save))
+      this.armies = save.units.map(save => new CampaignArmy(this, save.cellPosition, save))
     } else {
 
       this.map = generateMap(this.cellsPerRow, this.seed)
@@ -78,7 +78,7 @@ export class Campaign {
         ...defaultResources,
         selectedMapCell: null,
       })
-      this.units = [
+      this.armies = [
         new CampaignArmy(this, this.map.cells[2012].position),
         new CampaignArmy(this, this.map.cells[2014].position, undefined, 4),
         new CampaignArmy(this, this.map.cells[2015].position, undefined, 3),
@@ -225,8 +225,8 @@ export class Campaign {
 
     await this.drawAnimations(delta, xStart, yStart, xEnd, yEnd);
 
-    for (let i = 0; i < this.units.length; i++) {
-      this.units[i].update(this.viewport.ctx)
+    for (let i = 0; i < this.armies.length; i++) {
+      this.armies[i].update(this.viewport.ctx)
     }
 
     this.updateHandler = requestAnimationFrame(this.update)
@@ -241,7 +241,7 @@ export class Campaign {
     this.viewport.ctx.font = '10px sans-serif'
     for (let x = xStartCell; x <= xEndCell; x++) {
       for (let y = yStartCell; y <= yEndCell; y++) {
-        const i = x + this.cellsPerRow * y;
+        const i = getIndex(x, y, this.cellsPerRow);
         const x2 = x * MAP_CELL_SIZE
         const y2 = y * MAP_CELL_SIZE
         const { building } = this.map.cells[i]

@@ -1,3 +1,6 @@
+import { MAP_CELL_SIZE } from './globalConstants';
+import { Position } from './interfaces';
+
 export function degToRad(degrees: number) {
   return degrees * (Math.PI / 180);
 }
@@ -65,4 +68,12 @@ export function interpolateSmootherStep(a0: number, a1: number, w: number) {
 
 export function floor(number: number) {
   return number | 0
+}
+
+export function getIndexPos(pos: Position, cellsPerRow: number) {
+  return pos.x + cellsPerRow * pos.y;
+}
+
+export function getIndex(x: number, y: number, cellsPerRow: number) {
+  return x + cellsPerRow * y
 }
