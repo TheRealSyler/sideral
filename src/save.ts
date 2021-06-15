@@ -2,7 +2,6 @@ import { Achievements } from './achievements';
 import { ArmySave, Battlemode, BattlemodeCell } from './battlemode';
 import { Building } from './building';
 import { Campaign, CampaignCell } from './campaign';
-import { Position } from './interfaces';
 import { GameMap } from './map';
 import { BattlemodeState, CampaignState } from './state';
 import { UnitSave } from './unit';
@@ -52,7 +51,7 @@ export async function saveCampaign(game: Campaign, slot = campaignSlot, saveToLo
     map: { ...map, cells: map.cells.map((cell) => ({ ...cell, currentUnit: undefined })) },
     achievements: game.achievements,
     state: game.state.getState(),
-    units: game.units.map((unit) => unit.save()),
+    units: game.armies.map((unit) => unit.save()),
   }
   if (saveToLocalStorage) {
     localStorage.setItem(slot, JSON.stringify(save))
@@ -64,8 +63,6 @@ export function deleteSave(slot = campaignSlot) {
   console.log('Delete Game Save from Slot:', slot)
   localStorage.removeItem(slot)
 }
-
-
 
 export function saveBattlemode(game: Battlemode, slot = battlemodeSlot, saveToLocalStorage = true) {
   console.log('Saved Game to Slot:', slot)
@@ -84,9 +81,6 @@ export function saveBattlemode(game: Battlemode, slot = battlemodeSlot, saveToLo
   return save
 }
 
-
-
-
 export function loadBattlemodeSave(slot = battlemodeSlot) {
   console.log('Load Game Save from Slot:', slot)
   const rawSave = localStorage.getItem(slot)
@@ -96,15 +90,3 @@ export function loadBattlemodeSave(slot = battlemodeSlot) {
     return save
   }
 }
-
-
-// function loadArmy(armyPositions: ArmyPositions, army: Army, cells: BattlemodeCell[]) {
-//   for (let i = 0; i < armyPositions.length; i++) {
-//     const [index, pos] = armyPositions[i];
-
-//     const cell = cells[pos.x + 32 * pos.y] // TODO replace width constant
-
-//     army.soldiers[index].currentCell = cell
-//     cell.currentUnit = army.soldiers[index]
-//   }
-// }
