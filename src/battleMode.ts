@@ -3,7 +3,6 @@ import { AStarNode, findPath, genAStarNodes, restoreAStarNodes } from './aStar'
 import { CanvasCache } from './canvas/canvasCache'
 import { Viewport } from './canvas/viewport'
 import { MAP_PADDING, MAP_MOVE_FACTOR, ZOOM_SCALE_FACTOR, MAP_CELL_SIZE, UI_BOTTOM_HEIGHT, UI_TOP_HEIGHT, A_START_ENABLE_DIAGONAL } from './globalConstants'
-import { Position } from './interfaces'
 import { GameMap, MapCell } from './map'
 import { generateBattleModeMap } from './mapGenerator'
 import { Minimap } from './minimap'
@@ -14,9 +13,7 @@ import { BattlemodeState, State } from './state'
 
 import { InitBattlemodeUI } from './ui/battlemodeUI'
 import { UnitSave } from './unit'
-import { clamp, distanceSingleAxis, floor, toPx } from './utils'
-
-
+import { clamp, distance, distanceSingleAxis, floor, getIndex, getIndexPos, toPx } from './utils'
 
 export interface ArmyConstructor {
   soldiers: SoldierAttributes[]
@@ -33,7 +30,7 @@ export interface ArmySave {
 
 export interface BattlemodeCell extends MapCell {
   currentUnit?: Soldier
-  flag?: 'test' | 'test2'
+  flag?: 'isInSoldierReach' | 'isSoldier'
 }
 
 export class Battlemode extends Viewport {
@@ -96,7 +93,13 @@ export class Battlemode extends Viewport {
     } else {
       this.map = generateBattleModeMap(this.cellsPerRow, this.seed)
       this.aStarNodes = genAStarNodes(this.map.cells, this.cellsPerRow, isObstacle)
-      this.state = new State<BattlemodeState>({ selectedMapCell: null, canStartBattle: false, playerTurn: true, startedBattle: false })
+      this.state = new State<BattlemodeState>({
+        selectedMapCell: null,
+        canStartBattle: false,
+        playerTurn: true,
+        startedBattle: false,
+        aiTurn: false
+      })
 
       const createSoldiers = (soldierAttrib: SoldierAttributes) => new Soldier(this, soldierAttrib)
 
@@ -105,6 +108,7 @@ export class Battlemode extends Viewport {
     }
 
     this.deploySoldier(this.map.cells[0], this.aiArmy.soldiers[0])
+    this.deploySoldier(this.map.cells[1], this.aiArmy.soldiers[1])
 
     this.start()
   }
@@ -156,7 +160,7 @@ export class Battlemode extends Viewport {
     }
     if (!cell.currentUnit) {
       if (soldier.currentCell) {
-        this.aStarNodes[this.getIndexPos(soldier.currentCell.position)].isObstacle = false
+        this.aStarNodes[getIndexPos(soldier.currentCell.position, this.cellsPerRow)].isObstacle = false
         soldier.currentCell.currentUnit = undefined
       }
       cell.currentUnit = soldier
@@ -171,7 +175,7 @@ export class Battlemode extends Viewport {
 
       soldier.targetCellPos = { ...cell.position }
 
-      this.aStarNodes[this.getIndexPos(cell.position)].isObstacle = true
+      this.aStarNodes[getIndexPos(cell.position, this.cellsPerRow)].isObstacle = true
       this.checkBattleStart()
       this.state.resendListeners('selectedMapCell')
     }
@@ -180,7 +184,7 @@ export class Battlemode extends Viewport {
   recallSoldier(soldier: Soldier) {
     const cell = soldier.currentCell
     if (cell) {
-      this.aStarNodes[this.getIndexPos(cell.position)].isObstacle = false
+      this.aStarNodes[getIndexPos(cell.position, this.cellsPerRow)].isObstacle = false
       cell.currentUnit = undefined
       soldier.currentCell = undefined
 
@@ -247,20 +251,25 @@ export class Battlemode extends Viewport {
       this.ctx.lineTo(x2, y2);
       this.ctx.stroke();
     }
-    let startPlayerTurn = true
-    this.ctx.strokeStyle = '#0af'
+
+    let endPlayerTurn = true
     for (let i = 0; i < this.playerArmy.soldiers.length; i++) {
       const soldier = this.playerArmy.soldiers[i]
       soldier.update(this.ctx);
-      startPlayerTurn = startPlayerTurn && soldier.reachedDestination
+      endPlayerTurn = endPlayerTurn && !soldier.isInTurn
     }
 
+    let endAiTurn = true
     for (let i = 0; i < this.aiArmy.soldiers.length; i++) {
       const soldier = this.aiArmy.soldiers[i];
       soldier.update(this.ctx)
+      endAiTurn = endAiTurn && !soldier.isInTurn
     }
-    if (!this.state.get('playerTurn') && startPlayerTurn) {
-      this.startTurn()
+    const aiTurn = this.state.get('aiTurn')
+    if (endPlayerTurn && !this.state.get('playerTurn') && !aiTurn) {
+      this.startAiTurn()
+    } else if (aiTurn && endAiTurn) {
+      this.endAiTurn()
     }
 
     if (!this.state.get('startedBattle')) {
@@ -273,6 +282,8 @@ export class Battlemode extends Viewport {
     requestAnimationFrame(this.update)
   }
 
+
+
   private async drawAnimations(delta: number, xStart: number, yStart: number, xEnd: number, yEnd: number) {
     const xStartCell = clamp(floor(xStart / MAP_CELL_SIZE), this.cellsPerRow - 1, 0);
     const yStartCell = clamp(floor(yStart / MAP_CELL_SIZE), this.cellsPerRow - 1, 0);
@@ -281,18 +292,18 @@ export class Battlemode extends Viewport {
 
     for (let x = xStartCell; x <= xEndCell; x++) {
       for (let y = yStartCell; y <= yEndCell; y++) {
-        const i = this.getIndex(x, y);
+        const i = getIndex(x, y, this.cellsPerRow);
         const x2 = x * MAP_CELL_SIZE
         const y2 = y * MAP_CELL_SIZE
         const { flag } = this.map.cells[i]
 
 
         switch (flag) {
-          case 'test':
+          case 'isInSoldierReach':
             this.ctx.fillStyle = '#f004'
             this.ctx.fillRect(x2, y2, MAP_CELL_SIZE, MAP_CELL_SIZE)
             break;
-          case 'test2':
+          case 'isSoldier':
             this.ctx.fillStyle = '#0f04'
             this.ctx.fillRect(x2, y2, MAP_CELL_SIZE, MAP_CELL_SIZE)
             break;
@@ -351,7 +362,7 @@ export class Battlemode extends Viewport {
             this.clearMoveFlags()
           } else {
             this.state.set('selectedMapCell', cell)
-            if (cell.currentUnit && startedBattle) {
+            if (startedBattle && cell.currentUnit?.team === 'player') {
               this.setMoveFlags(cell.position.x, cell.position.y, cell.currentUnit.getRange())
             } else {
               this.clearMoveFlags()
@@ -361,14 +372,14 @@ export class Battlemode extends Viewport {
         } else if (e.button === 2 && selectedCell?.currentUnit && startedBattle) {
           const soldier = selectedCell.currentUnit
 
-          const targetNode = this.aStarNodes[this.getIndexPos(soldier.targetCellPos)]
+          const targetNode = this.aStarNodes[getIndexPos(soldier.targetCellPos, this.cellsPerRow)]
           targetNode.isObstacle = false
           if (selectedCell === cell && cell.currentUnit) {
             cell.currentUnit.path = []
-            this.aStarNodes[this.getIndexPos(selectedCell.position)].isObstacle = true
+            this.aStarNodes[getIndexPos(selectedCell.position, this.cellsPerRow)].isObstacle = true
           } else if (cell.flag) {
-            const start = this.aStarNodes[this.getIndexPos(selectedCell.position)]
-            const endIndex = this.getIndexPos(cell.position)
+            const start = this.aStarNodes[getIndexPos(selectedCell.position, this.cellsPerRow)]
+            const endIndex = getIndexPos(cell.position, this.cellsPerRow)
             const end = this.aStarNodes[endIndex]
             const isEndObstacle = end.isObstacle
 
@@ -398,9 +409,8 @@ export class Battlemode extends Viewport {
                   }
                 }
                 soldier.path = path
-                soldier.reachedDestination = false
-                this.aStarNodes[this.getIndexPos(cell.position)].isObstacle = true
 
+                this.aStarNodes[getIndexPos(cell.position, this.cellsPerRow)].isObstacle = true
 
                 soldier.targetCellPos = { ...endPos }
               }
@@ -434,10 +444,10 @@ export class Battlemode extends Viewport {
     // TODO remove this function???
     const startX = clamp(x - dist, this.cellsPerRow, 0)
     const startY = clamp(y - dist, this.cellsPerRow, 0)
-    const startIndex = this.getIndex(startX, startY);
+    const startIndex = getIndex(startX, startY, this.cellsPerRow);
     const endX = clamp(x + dist, this.cellsPerRow - 1, 0)
     const endY = clamp(y + dist, this.cellsPerRow - 1, 0)
-    const endIndex = this.getIndex(endX, endY)
+    const endIndex = getIndex(endX, endY, this.cellsPerRow)
     const o = x - dist
     const offset = o < 0 ? o : 0
     let currentX = 0
@@ -461,9 +471,9 @@ export class Battlemode extends Viewport {
       const canReach = A_START_ENABLE_DIAGONAL || dx + dy <= dist
 
       if (canReach && cell.type === 'gras') {
-        cell.flag = 'test'
-        if (i === this.getIndex(x, y)) {
-          cell.flag = 'test2'
+        cell.flag = 'isInSoldierReach'
+        if (i === getIndex(x, y, this.cellsPerRow)) {
+          cell.flag = 'isSoldier'
         }
       }
       this.moveFlags.push(cell)
@@ -478,57 +488,126 @@ export class Battlemode extends Viewport {
       }
     }
   }
-  private getIndexPos(pos: Position) {
-    return pos.x + this.cellsPerRow * pos.y
 
-  }
-  private getIndex(x: number, y: number) {
-    return x + this.cellsPerRow * y
-  }
-
-  private startTurn() {
-    console.log('YAY')
-
-    this.state.set('playerTurn', true)
-
-    this.soldierLoop((soldier) => {
-      soldier.canMove = false
-
-      if (soldier.attack) {
-        this.attack(soldier, soldier.attack)
+  private soldierAttack(soldier: Soldier) {
+    const enemyCell = soldier.attack
+    if (enemyCell) {
+      const enemy = enemyCell.currentUnit
+      if (enemy) {
+        if (Math.random() > 0.5) {
+          enemy.health = Math.random() > 0.5 ? 'dead' : 'wounded'
+        } else {
+          soldier.health = Math.random() > 0.5 ? 'dead' : 'wounded'
+        }
       }
-    })
-
-
-  }
-
-  private attack(soldier: Soldier, enemyCell: BattlemodeCell) {
-    const enemy = enemyCell.currentUnit
-    if (enemy) {
-      console.log('ATTACK')
-      if (Math.random() > 0.5) {
-        console.log('VICTORY')
-        enemy.health = Math.random() > 0.5 ? 'dead' : 'wounded'
-      } else {
-        console.log('DEFAT')
-        soldier.health = Math.random() > 0.5 ? 'dead' : 'wounded'
-      }
+      soldier.attack = undefined
     }
-    soldier.attack = undefined
-  }
-
-
-
-  endTurn() {
-    this.state.set('playerTurn', false)
-    this.soldierLoop((soldier) => soldier.canMove = true)
-    this.clearMoveFlags()
-    this.state.set('selectedMapCell', null)
   }
 
   private soldierLoop(func: (soldier: Soldier) => void) {
     for (let i = 0; i < this.playerArmy.soldiers.length; i++) {
       func(this.playerArmy.soldiers[i])
     }
+  }
+  private aiSoldierLoop(func: (aiSoldier: Soldier) => void) {
+    for (let i = 0; i < this.aiArmy.soldiers.length; i++) {
+      func(this.aiArmy.soldiers[i])
+    }
+  }
+
+  endTurn() {
+    this.state.set('playerTurn', false)
+    this.soldierLoop((soldier) => soldier.isInTurn = true)
+    this.clearMoveFlags()
+    this.state.set('selectedMapCell', null)
+  }
+
+  private async startAiTurn() {
+
+    this.soldierLoop((soldier) => this.soldierAttack(soldier))
+
+    this.state.set('aiTurn', true)
+
+    this.aiSoldierLoop((aiSoldier) => {
+      if (aiSoldier.health !== 'dead') {
+
+        const closet = {
+          dist: Infinity,
+          soldier: undefined as undefined | Soldier
+        }
+
+        this.soldierLoop((soldier) => {
+          const dist = distance(soldier.x, soldier.x, aiSoldier.x, aiSoldier.y)
+          if (dist <= closet.dist && soldier.health !== 'dead') {
+            closet.dist = dist
+            closet.soldier = soldier
+          }
+        })
+
+        const solider = closet.soldier
+        if (solider) {
+          const aiPos = aiSoldier.currentCell?.position
+          const soldierPos = solider.currentCell?.position
+          if (aiPos && soldierPos) {
+
+            const startNode = this.aStarNodes[getIndexPos(aiPos, this.cellsPerRow)]
+            const endNode = this.aStarNodes[getIndexPos(soldierPos, this.cellsPerRow)]
+            endNode.isObstacle = false
+            const path = findPath(startNode, endNode)
+            endNode.isObstacle = true
+            restoreAStarNodes(this.aStarNodes)
+            if (path) {
+              aiSoldier.isInTurn = true
+              if (path.length <= aiSoldier.getRange()) {
+                const attack = path.shift()
+                if (attack && aiSoldier.health === 'healthy') {
+                  aiSoldier.attack = this.map.cells[getIndexPos(attack, this.cellsPerRow)]
+                }
+                aiSoldier.path = path
+
+              } else {
+                const start = path.length - aiSoldier.getRange()
+                aiSoldier.path = path.slice(start)
+              }
+
+
+              const lastPos = aiSoldier.path[0]
+              if (lastPos) {
+                this.aStarNodes[getIndexPos(lastPos, this.cellsPerRow)].isObstacle = true
+              }
+            }
+          }
+        }
+      }
+    })
+
+  }
+
+  checkDefeat(army: Army, func?: (soldier: Soldier) => void) {
+    let defeat = true
+    const f = func || (() => undefined);
+    army.soldiers.forEach((soldier) => {
+      f(soldier)
+      if (soldier.health === 'healthy') {
+        defeat = false
+      }
+    })
+    return defeat
+  }
+
+  private endAiTurn() {
+    const aiDefat = this.checkDefeat(this.aiArmy, (aiSoldier) => this.soldierAttack(aiSoldier))
+    const playerDefat = this.checkDefeat(this.playerArmy)
+
+
+    if (aiDefat) {
+      console.log('PLAYER VICTORY')
+    }
+    if (playerDefat) {
+      console.log('PLAYER DEFEAT')
+    }
+
+    this.state.set('playerTurn', true)
+    this.state.set('aiTurn', false)
   }
 }

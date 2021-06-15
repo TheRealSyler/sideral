@@ -1,6 +1,6 @@
 import { BattlemodeCell, Battlemode, SoldierSave } from './battlemode'
 import { Unit } from './unit'
-import { floor } from './utils'
+import { angleTo, distance, floor } from './utils'
 
 export interface SoldierAttributes {
   name: string
@@ -17,11 +17,13 @@ export class Soldier extends Unit implements Required<SoldierAttributes> {
 
   attack: BattlemodeCell | undefined = undefined
 
+  isInTurn = false
+
   static soldierSpeed = 3
   constructor(game: Battlemode, { name, range, team, health }: SoldierAttributes, save?: SoldierSave) {
     super(game, undefined, save, Soldier.soldierSpeed)
     this.selected = true
-    this.canMove = false
+    // this.canMove = false
     this.avoidOtherUnits = false
 
     this.name = name
@@ -37,8 +39,25 @@ export class Soldier extends Unit implements Required<SoldierAttributes> {
     }
   }
 
+  protected updatePosition() {
+    if (this.isInTurn) {
+      const angle = angleTo(this.x, this.y, this.target.x, this.target.y)
+      const d = distance(this.x, this.y, this.target.x, this.target.y)
+
+      if (d > 2) {
+        const movementX = Math.sin(angle) * (this.speed)
+        const movementY = Math.cos(angle) * (this.speed)
+        this.x += movementX
+        this.y += movementY
+      } else {
+        this.isInTurn = !!this.moveToNewTarget();
+      }
+
+    }
+  }
+
   update(ctx: CanvasRenderingContext2D) {
-    super.updatePosition()
+    this.updatePosition()
     let color
 
     switch (this.health) {

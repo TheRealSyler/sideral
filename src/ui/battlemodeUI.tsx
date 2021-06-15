@@ -56,11 +56,11 @@ export function InitBattlemodeUI(game: Battlemode) {
         if (soldier) {
 
           bottom.appendChild(<div>
-            {Object.entries(cell).join('; ')}
             <div>
 
-              Soldier:
-              <span>{soldier.name}</span>
+
+              Name: {soldier.name}<br />
+              Range: {soldier.getRange()}
             </div>
           </div>)
         } else {

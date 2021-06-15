@@ -44,6 +44,7 @@ export interface BattlemodeState {
   canStartBattle: boolean
   startedBattle: boolean
   playerTurn: boolean
+  aiTurn: boolean;
   selectedMapCell: null | BattlemodeCell
 }
 
