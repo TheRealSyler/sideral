@@ -1,6 +1,8 @@
 {
   "scripts": {
     "start": "webpack serve --mode development",
+    "pre-start-sprite": "ts-node src/sprite/genSpriteImport.ts",
+    "start-sprite": "yarn pre-start-sprite && webpack serve --mode development --config ./webpack.config.sprite.ts",
     "build": "del dist && webpack --mode production"
   },
   "devDependencies": {
