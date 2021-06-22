@@ -4,3 +4,6 @@ dist
 *.log
 
 src/assets/spriteCache/*
+
+src/assets/untitled.png
+src/assets/sprites.blend1
