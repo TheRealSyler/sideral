@@ -1,9 +1,10 @@
 import { MAP_CELL_SIZE } from './globalConstants'
 import { Position } from './interfaces'
-import { angleTo, distance, getIndexPos } from './utils'
+import { angleTo, degToRad, distance, floor, getIndexPos } from './utils'
 
 import { AStarNode, findPath, restoreAStarNodes } from './aStar';
 import { GameMap, MapCell } from './map';
+import { Animations, renderAnimation } from './animation';
 
 export interface UnitSave {
   x: number;
@@ -36,9 +37,9 @@ export class Unit implements UnitSave {
   public selected = false
 
   currentCell: UnitCell | undefined;
-
   private static readonly MAP_CELL_HALF_SIZE = (MAP_CELL_SIZE / 2);
-
+  animType: Animations = 'idle_right';
+  animTypeIdle: Animations = 'idle_right';
   constructor(private game: UnitGame, cellPosition?: Position, save?: UnitSave, public speed = 1) {
     let cellPos: Position | undefined
     if (cellPosition) {
@@ -78,7 +79,6 @@ export class Unit implements UnitSave {
   protected updatePosition() {
     const angle = angleTo(this.x, this.y, this.target.x, this.target.y)
     const d = distance(this.x, this.y, this.target.x, this.target.y)
-
     if (d > 2) {
       const movementX = Math.sin(angle) * (this.speed)
       const movementY = Math.cos(angle) * (this.speed)
@@ -89,18 +89,13 @@ export class Unit implements UnitSave {
     }
   }
 
-  protected draw(ctx: CanvasRenderingContext2D, color = '#fff', rimColor = '#0af') {
+  protected async draw(ctx: CanvasRenderingContext2D, color = '#fff', rimColor = '#0af') {
     if (this.currentCell) {
       if (this.selected) {
 
         ctx.fillStyle = color
 
         ctx.strokeStyle = rimColor
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, 6, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-
 
         ctx.beginPath();
         ctx.arc(this.target.x, this.target.y, 2, 0, 2 * Math.PI);
@@ -112,20 +107,19 @@ export class Unit implements UnitSave {
           ctx.fill();
         }
 
-      } else {
-        ctx.strokeStyle = '#000'
-        ctx.fillStyle = '#aaaa'
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, 6, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.fill();
       }
+
+      ctx.drawImage(
+        await renderAnimation(this.animType, performance.now(), this.speed),
+        this.x - Unit.MAP_CELL_HALF_SIZE,
+        this.y - Unit.MAP_CELL_HALF_SIZE
+      )
     }
   }
 
-  update(ctx: CanvasRenderingContext2D) {
+  async update(ctx: CanvasRenderingContext2D) {
     this.updatePosition()
-    this.draw(ctx)
+    await this.draw(ctx)
   }
 
   /** returns true if there is a new target*/
@@ -158,10 +152,37 @@ export class Unit implements UnitSave {
           this.target.x = newTarget.x * MAP_CELL_SIZE + Unit.MAP_CELL_HALF_SIZE
           this.target.y = newTarget.y * MAP_CELL_SIZE + Unit.MAP_CELL_HALF_SIZE
         }
+        this.setAnimationDir()
 
         return true
       }
     }
+    this.animType = this.animTypeIdle
+  }
+
+  setAnimationDir() {
+    const angle = floor(angleTo(this.x, this.y, this.target.x, this.target.y))
+
+    switch (angle) {
+      case 3:
+      case -3: // up
+        this.animType = 'walk_up'
+        this.animTypeIdle = 'idle_up'
+        break;
+      case -1: // left
+        this.animType = 'walk_left'
+        this.animTypeIdle = 'idle_left'
+        break;
+      case 1: // right
+        this.animType = 'walk_right'
+        this.animTypeIdle = 'idle_right'
+        break;
+      case 0: // down
+        this.animType = 'walk_down'
+        this.animTypeIdle = 'idle_down'
+        break;
+    }
+
   }
 
   public save(): UnitSave {
