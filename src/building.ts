@@ -54,7 +54,7 @@ export interface NonProductionBuildingInfo extends BaseBuildingInfo {
 
 export type BuildingInfo = NonProductionBuildingInfo | ProductionBuildingInfo
 export enum BuildingEnum {
-  'base', 'house', 'woodcutter', 'bakery', 'stone mine', 'wheat farm', 'wind mill', 'farm'
+  'base', 'house', 'bakery', 'stone mine', 'woodcutter', 'wheat farm', 'wind mill', 'farm',
 }
 export type BuildingNames = keyof typeof BuildingEnum
 
