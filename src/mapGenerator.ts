@@ -32,7 +32,7 @@ export function generateMap(width: number, seed: number) {
       building: null,
       resourceAmount: getResourceAmount(type, i),
       currentUnit: undefined,
-      rotation: rotation,
+      rotation: type === 'forest' ? 0 : rotation,
       type: type,
       position: { x: i % width, y: floor(i / width) }
     })

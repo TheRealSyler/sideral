@@ -4,6 +4,7 @@ import { CanvasViewer } from './canvas/canvasViewer';
 import { FindAStar, findPath, genAStarNodes, restoreAStarNodes } from './aStar';
 import { setUIVariables } from './ui/setUIVariables';
 import { Game } from './game';
+import { floor, loadTexture } from './utils';
 
 (async () => {
   document.addEventListener('contextmenu', event => event.preventDefault());
@@ -13,15 +14,8 @@ import { Game } from './game';
   const seed = 0
   if (a) {
 
-    // const size = 32
-    // const viewer = new CanvasViewer(size, 40, 0.4)
-
-    // viewer.drawNumArray(forestMaskGen(0, size, 0.8, 0.7, 4))
-
 
     new Game(seed)
-
-
 
   } else {
 

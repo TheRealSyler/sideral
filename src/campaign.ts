@@ -226,7 +226,7 @@ export class Campaign {
     await this.drawAnimations(delta, xStart, yStart, xEnd, yEnd);
 
     for (let i = 0; i < this.armies.length; i++) {
-      this.armies[i].update(this.viewport.ctx)
+      await this.armies[i].update(this.viewport.ctx)
     }
 
     this.updateHandler = requestAnimationFrame(this.update)
@@ -259,13 +259,13 @@ export class Campaign {
           // }
         }
 
-        const node = this.aStarNodes[i]
-        this.viewport.ctx.fillStyle = '#f003'
-        if (node.isObstacle) {
-          this.viewport.ctx.beginPath();
-          this.viewport.ctx.rect(x2, y2, MAP_CELL_SIZE, MAP_CELL_SIZE);
-          this.viewport.ctx.fill();
-        }
+        // const node = this.aStarNodes[i]
+        // this.viewport.ctx.fillStyle = '#f003'
+        // if (node.isObstacle) {
+        //   this.viewport.ctx.beginPath();
+        //   this.viewport.ctx.rect(x2, y2, MAP_CELL_SIZE, MAP_CELL_SIZE);
+        //   this.viewport.ctx.fill();
+        // }
         // this.viewport.ctx.fillStyle = '#000'
         // this.viewport.ctx.strokeStyle = '#f00'
         // this.viewport.ctx.beginPath();

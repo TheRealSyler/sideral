@@ -212,7 +212,7 @@ export class Battlemode extends Viewport {
     this.canvas.style.bottom = toPx(UI_BOTTOM_HEIGHT);
   }
 
-  public update = (delta: number) => {
+  public update = async (delta: number) => {
     this.updateView(delta);
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     this.ctx.drawImage(this.mapTextureCanvas.canvas, 0, 0);
@@ -255,14 +255,14 @@ export class Battlemode extends Viewport {
     let endPlayerTurn = true
     for (let i = 0; i < this.playerArmy.soldiers.length; i++) {
       const soldier = this.playerArmy.soldiers[i]
-      soldier.update(this.ctx);
+      await soldier.update(this.ctx);
       endPlayerTurn = endPlayerTurn && !soldier.isInTurn
     }
 
     let endAiTurn = true
     for (let i = 0; i < this.aiArmy.soldiers.length; i++) {
       const soldier = this.aiArmy.soldiers[i];
-      soldier.update(this.ctx)
+      await soldier.update(this.ctx)
       endAiTurn = endAiTurn && !soldier.isInTurn
     }
     const aiTurn = this.state.get('aiTurn')

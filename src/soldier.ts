@@ -56,7 +56,7 @@ export class Soldier extends Unit implements Required<SoldierAttributes> {
     }
   }
 
-  update(ctx: CanvasRenderingContext2D) {
+  async update(ctx: CanvasRenderingContext2D) {
     this.updatePosition()
     let color
 
@@ -73,7 +73,7 @@ export class Soldier extends Unit implements Required<SoldierAttributes> {
 
     }
 
-    super.draw(ctx, color, this.team === 'ai' ? '#f00' : undefined)
+    await super.draw(ctx, color, this.team === 'ai' ? '#f00' : undefined)
   }
 
 

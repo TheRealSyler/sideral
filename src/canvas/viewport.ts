@@ -40,7 +40,7 @@ export class Viewport extends CanvasCache {
     this.canvas.addEventListener('mouseup', this._mouseup);
     this.canvas.addEventListener('mouseleave', this._mouseleave);
     window.addEventListener('resize', this._resize);
-    this.addCtxTransformTacking(this.ctx)
+    addCtxTransformTacking(this.ctx)
   }
 
   updateView(delta: number) {
@@ -152,74 +152,7 @@ export class Viewport extends CanvasCache {
     return evt.preventDefault() && false;
   };
 
-  private addCtxTransformTacking(ctx: CanvasRenderingContext2D) {
 
-    let domMatrix = new DOMMatrix()
-    ctx.setDomMatrix = function (matrix) { domMatrix = matrix }
-    ctx.getTransform = function () { return domMatrix; };
-
-    const savedTransforms: any[] = [];
-    const save = ctx.save;
-    ctx.save = function () {
-      savedTransforms.push(domMatrix.translate(0, 0));
-      return save.call(ctx);
-    };
-
-    const restore = ctx.restore;
-    ctx.restore = function () {
-      domMatrix = savedTransforms.pop();
-      return restore.call(ctx);
-    };
-
-    const scale = ctx.scale;
-    ctx.scale = function (sx, sy) {
-      domMatrix = domMatrix.multiply(scaleNonUniform(sx, sy))
-
-      return scale.call(ctx, sx, sy);
-    };
-
-    const rotate = ctx.rotate;
-    ctx.rotate = function (radians) {
-      domMatrix = domMatrix.rotate(radians * 180 / Math.PI);
-      return rotate.call(ctx, radians);
-    };
-
-    const translate = ctx.translate;
-    ctx.translate = function (dx, dy) {
-      domMatrix = domMatrix.translate(dx, dy);
-      return translate.call(ctx, dx, dy);
-    };
-
-    const transform = ctx.transform;
-    ctx.transform = function (a, b, c, d, e, f) {
-      const m2 = new DOMMatrix()
-      m2.a = a; m2.b = b; m2.c = c; m2.d = d; m2.e = e; m2.f = f;
-      domMatrix = domMatrix.multiply(m2);
-      return transform.call(ctx, a, b, c, d, e, f);
-    };
-
-    const setTransform = ctx.setTransform;
-    // @ts-ignore
-    ctx.setTransform = function (a: number, b: number, c: number, d: number, e: number, f: number) {
-      domMatrix.a = a;
-      domMatrix.b = b;
-      domMatrix.c = c;
-      domMatrix.d = d;
-      domMatrix.e = e;
-      domMatrix.f = f;
-
-      // @ts-ignore
-      return setTransform.call(ctx, a, b, c, d, e, f);
-    };
-
-
-    const pt = new DOMPoint();
-
-    ctx.transformedPoint = (x: number, y: number) => {
-      pt.x = x; pt.y = y;
-      return pt.matrixTransform(domMatrix.inverse());
-    }
-  }
 }
 
 
@@ -250,3 +183,71 @@ interface ViewportOptions {
   zoomMaxScale: number
 }
 
+export function addCtxTransformTacking(ctx: CanvasRenderingContext2D) {
+
+  let domMatrix = new DOMMatrix()
+  ctx.setDomMatrix = function (matrix) { domMatrix = matrix }
+  ctx.getTransform = function () { return domMatrix; };
+
+  const savedTransforms: any[] = [];
+  const save = ctx.save;
+  ctx.save = function () {
+    savedTransforms.push(domMatrix.translate(0, 0));
+    return save.call(ctx);
+  };
+
+  const restore = ctx.restore;
+  ctx.restore = function () {
+    domMatrix = savedTransforms.pop();
+    return restore.call(ctx);
+  };
+
+  const scale = ctx.scale;
+  ctx.scale = function (sx, sy) {
+    domMatrix = domMatrix.multiply(scaleNonUniform(sx, sy))
+
+    return scale.call(ctx, sx, sy);
+  };
+
+  const rotate = ctx.rotate;
+  ctx.rotate = function (radians) {
+    domMatrix = domMatrix.rotate(radians * 180 / Math.PI);
+    return rotate.call(ctx, radians);
+  };
+
+  const translate = ctx.translate;
+  ctx.translate = function (dx, dy) {
+    domMatrix = domMatrix.translate(dx, dy);
+    return translate.call(ctx, dx, dy);
+  };
+
+  const transform = ctx.transform;
+  ctx.transform = function (a, b, c, d, e, f) {
+    const m2 = new DOMMatrix()
+    m2.a = a; m2.b = b; m2.c = c; m2.d = d; m2.e = e; m2.f = f;
+    domMatrix = domMatrix.multiply(m2);
+    return transform.call(ctx, a, b, c, d, e, f);
+  };
+
+  const setTransform = ctx.setTransform;
+  // @ts-ignore
+  ctx.setTransform = function (a: number, b: number, c: number, d: number, e: number, f: number) {
+    domMatrix.a = a;
+    domMatrix.b = b;
+    domMatrix.c = c;
+    domMatrix.d = d;
+    domMatrix.e = e;
+    domMatrix.f = f;
+
+    // @ts-ignore
+    return setTransform.call(ctx, a, b, c, d, e, f);
+  };
+
+
+  const pt = new DOMPoint();
+
+  ctx.transformedPoint = (x: number, y: number) => {
+    pt.x = x; pt.y = y;
+    return pt.matrixTransform(domMatrix.inverse());
+  }
+}
