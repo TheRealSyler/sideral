@@ -110,6 +110,15 @@ function bottomUI(game: Campaign) {
         }
       }
 
+    } else {
+      for (let i = 0; i < game.armies.length; i++) {
+        const army = game.armies[i];
+        if (army.selected) {
+          cellBuilding.appendChild(<div>
+            {army.speed}
+          </div>)
+        }
+      }
     }
   });
 
