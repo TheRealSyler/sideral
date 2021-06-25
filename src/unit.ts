@@ -91,6 +91,11 @@ export class Unit implements UnitSave {
 
   protected async draw(ctx: CanvasRenderingContext2D, color = '#fff', rimColor = '#0af') {
     if (this.currentCell) {
+      ctx.drawImage(
+        await renderAnimation(this.animType, performance.now(), this.speed),
+        this.x - Unit.MAP_CELL_HALF_SIZE,
+        this.y - Unit.MAP_CELL_HALF_SIZE
+      )
       if (this.selected) {
 
         ctx.fillStyle = color
@@ -98,8 +103,8 @@ export class Unit implements UnitSave {
         ctx.strokeStyle = rimColor
 
         ctx.beginPath();
-        ctx.arc(this.target.x, this.target.y, 2, 0, 2 * Math.PI);
-        ctx.fill();
+        ctx.arc(this.x, this.y, 31, 0, 2 * Math.PI);
+        ctx.stroke();
         for (let i = 0; i < this.path.length; i++) {
           const path = this.path[i];
           ctx.beginPath();
@@ -109,11 +114,6 @@ export class Unit implements UnitSave {
 
       }
 
-      ctx.drawImage(
-        await renderAnimation(this.animType, performance.now(), this.speed),
-        this.x - Unit.MAP_CELL_HALF_SIZE,
-        this.y - Unit.MAP_CELL_HALF_SIZE
-      )
     }
   }
 
