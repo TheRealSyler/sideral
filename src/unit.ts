@@ -92,7 +92,7 @@ export class Unit implements UnitSave {
   protected async draw(ctx: CanvasRenderingContext2D, color = '#fff', rimColor = '#0af') {
     if (this.currentCell) {
       ctx.drawImage(
-        await renderAnimation(this.animType, performance.now(), this.speed),
+        await renderAnimation(this.animType, performance.now()),
         this.x - Unit.MAP_CELL_HALF_SIZE,
         this.y - Unit.MAP_CELL_HALF_SIZE
       )

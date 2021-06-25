@@ -73,11 +73,11 @@ const textureCache = new TextureCache<Animations>({
 const animationCanvas = new CanvasCache(MAP_CELL_SIZE, 'Animation Render Canvas')
 addCtxTransformTacking(animationCanvas.ctx)
 
-export async function renderAnimation(name: Animations, delta: number, scale = 1) {
+export async function renderAnimation(name: Animations, delta: number) {
   const img = await textureCache.getTexture(name)
   const info = animationInfo[name]
   const frames = info.texturesPerRow * info.texturesPerRow;
-  const frame = floor((delta / (info.timePerFrame / scale)) % frames)
+  const frame = floor((delta / info.timePerFrame) % frames)
   const [offsetX, offsetY] = getTextureOffset(frame, MAP_CELL_SIZE, info.texturesPerRow)
 
   animationCanvas.ctx.clearRect(0, 0, MAP_CELL_SIZE, MAP_CELL_SIZE)
