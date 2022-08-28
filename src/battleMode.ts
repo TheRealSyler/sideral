@@ -82,7 +82,7 @@ export class Battlemode extends Viewport {
     }
 
 
-    const isObstacle = (cell: BattlemodeCell) => cell.type !== 'gras' || !!cell.currentUnit
+    const isObstacle = (cell: BattlemodeCell) => !!cell.currentUnit
     if (save) {
       this.map = save.map
       this.aStarNodes = genAStarNodes(this.map.cells, this.cellsPerRow, isObstacle)
@@ -105,13 +105,12 @@ export class Battlemode extends Viewport {
 
       this.aiArmy = { soldiers: aiArmy.soldiers.map(createSoldiers) }
       this.playerArmy = { soldiers: playerArmy.soldiers.map(createSoldiers) }
+      this.deployAi()
     }
-
-    this.deploySoldier(this.map.cells[0], this.aiArmy.soldiers[0])
-    this.deploySoldier(this.map.cells[1], this.aiArmy.soldiers[1])
 
     this.start()
   }
+
 
   async start() {
     this.resize()
@@ -190,6 +189,20 @@ export class Battlemode extends Viewport {
 
       this.checkBattleStart()
       this.state.resendListeners('selectedMapCell')
+    }
+  }
+
+  private deployAi() {
+
+    const startX = this.cellsPerRow - 1
+    const startY = floor((this.cellsPerRow / 2) - (this.aiArmy.soldiers.length / 2))
+
+    for (let i = 0; i < this.aiArmy.soldiers.length; i++) {
+      const deployPos = getIndex(startX, startY + i, this.cellsPerRow)
+      const aiSoldier = this.aiArmy.soldiers[i];
+      this.deploySoldier(this.map.cells[deployPos], aiSoldier)
+      aiSoldier.animType = 'idle_left'
+      aiSoldier.animTypeIdle = 'idle_left'
     }
   }
 
@@ -463,6 +476,7 @@ export class Battlemode extends Viewport {
 
     for (let i = startIndex; i <= endIndex; i = increment(i)) {
       const cell = this.map.cells[i];
+      const node = this.aStarNodes[i];
       currentX = i % this.cellsPerRow
       currentY = floor(i / this.cellsPerRow)
 
@@ -470,7 +484,7 @@ export class Battlemode extends Viewport {
       const dy = distanceSingleAxis(y, currentY)
       const canReach = A_START_ENABLE_DIAGONAL || dx + dy <= dist
 
-      if (canReach && cell.type === 'gras') {
+      if (canReach && !node.isObstacle) {
         cell.flag = 'isInSoldierReach'
         if (i === getIndex(x, y, this.cellsPerRow)) {
           cell.flag = 'isSoldier'

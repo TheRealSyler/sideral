@@ -23,7 +23,6 @@ export class Soldier extends Unit implements Required<SoldierAttributes> {
   constructor(game: Battlemode, { name, range, team, health }: SoldierAttributes, save?: SoldierSave) {
     super(game, undefined, save, Soldier.soldierSpeed)
     this.selected = true
-    // this.canMove = false
     this.avoidOtherUnits = false
 
     this.name = name
@@ -58,22 +57,10 @@ export class Soldier extends Unit implements Required<SoldierAttributes> {
 
   async update(ctx: CanvasRenderingContext2D) {
     this.updatePosition()
-    let color
 
-    switch (this.health) {
-      case 'dead':
-        color = '#f00'
-        break;
-      case 'wounded':
-        color = '#f0f'
-        break;
-      case 'healthy':
-        color = '#0f0'
+    await super.draw(ctx)
+    ctx.fillText(this.health, this.x, this.y)
 
-
-    }
-
-    await super.draw(ctx, color, this.team === 'ai' ? '#f00' : undefined)
   }
 
 

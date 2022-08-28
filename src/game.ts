@@ -29,7 +29,24 @@ export class Game {
     if (this.isInCampaign) {
       this.campaign = new Campaign(this.seed, this.campaignSave)
     } else {
-      this.battleMode = new Battlemode({ soldiers: [{ name: 'awd', range: 6 }, { name: 'test' }] }, { soldiers: [{ team: 'ai', name: 'bob' }, { team: 'ai', name: 'gary' }] }, this.battleModeSave)
+      this.battleMode = new Battlemode(
+        { soldiers: [{ name: 'awd', range: 4 }, { name: 'test', range: 6 }] },
+        {
+          soldiers: [
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'bob' },
+            { team: 'ai', name: 'gary' }
+          ]
+        }, this.battleModeSave)
     }
   }
 
